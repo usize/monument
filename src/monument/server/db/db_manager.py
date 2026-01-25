@@ -4,14 +4,16 @@ Handles namespace validation, DB creation, and schema initialization.
 No ORM, no migrations - fail-fast on schema version mismatch.
 """
 
+import json
 import re
+import secrets
 import sqlite3
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 # Schema version must match PRAGMA user_version in schema.sql
-EXPECTED_SCHEMA_VERSION = 1
+EXPECTED_SCHEMA_VERSION = 4
 
 # Namespace validation regex from design doc
 NAMESPACE_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")
@@ -121,10 +123,13 @@ def get_connection(namespace: str) -> sqlite3.Connection:
     return conn
 
 
-def init_world(conn: sqlite3.Connection, width: int, height: int, goal: str = "") -> None:
+def init_world(conn: sqlite3.Connection, width: int, height: int, goal: str = "", epoch: int = 10) -> None:
     """
     Initialize a new world in the database.
     Sets up metadata, creates blank tiles, and prepares for agent registration.
+
+    Args:
+        epoch: Number of superticks to auto-advance before pausing (default: 10)
     """
     cursor = conn.cursor()
 
@@ -135,6 +140,7 @@ def init_world(conn: sqlite3.Connection, width: int, height: int, goal: str = ""
         ("goal", goal),
         ("width", str(width)),
         ("height", str(height)),
+        ("epoch", str(epoch)),  # Number of ticks to run before pausing
         ("last_adjudication_json", "null"),
         ("schema_version", str(EXPECTED_SCHEMA_VERSION)),
     ]
@@ -158,16 +164,50 @@ def init_world(conn: sqlite3.Connection, width: int, height: int, goal: str = ""
     conn.commit()
 
 
-def register_actor(conn: sqlite3.Connection, actor_id: str, x: int, y: int, facing: str = "N") -> None:
+def register_actor(
+    conn: sqlite3.Connection,
+    actor_id: str,
+    x: int,
+    y: int,
+    facing: str = "N",
+    scopes: Optional[List[str]] = None,
+    secret: Optional[str] = None,
+    custom_instructions: str = ""
+) -> str:
     """
     Register a new actor in the world.
+
+    Args:
+        conn: Database connection
+        actor_id: Unique actor identifier
+        x, y: Starting position
+        facing: Initial facing direction (N, S, E, W)
+        scopes: List of allowed actions (default: all actions)
+        secret: Authentication secret (auto-generated if not provided)
+        custom_instructions: Agent's identity, role, and objectives for this world
+
+    Returns:
+        The actor's secret (generated or provided)
     """
+    # Default scopes: all actions
+    if scopes is None:
+        scopes = ["MOVE", "PAINT", "SPEAK", "WAIT", "SKIP"]
+
+    # Generate secret if not provided (32-character hex string)
+    if secret is None:
+        secret = secrets.token_hex(16)
+
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT OR REPLACE INTO actors (id, x, y, facing, points, eliminated_at) VALUES (?, ?, ?, ?, 100, NULL)",
-        (actor_id, x, y, facing)
+        """
+        INSERT OR REPLACE INTO actors (id, secret, x, y, facing, scopes, custom_instructions, eliminated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+        """,
+        (actor_id, secret, x, y, facing, json.dumps(scopes), custom_instructions)
     )
     conn.commit()
+
+    return secret
 
 
 def unregister_actor(conn: sqlite3.Connection, actor_id: str) -> None:
@@ -179,9 +219,104 @@ def unregister_actor(conn: sqlite3.Connection, actor_id: str) -> None:
     conn.commit()
 
 
+def update_actor_scopes(conn: sqlite3.Connection, actor_id: str, scopes: List[str]) -> None:
+    """
+    Update an actor's allowed action scopes.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE actors SET scopes = ? WHERE id = ?",
+        (json.dumps(scopes), actor_id)
+    )
+    conn.commit()
+
+
+def update_actor_instructions(conn: sqlite3.Connection, actor_id: str, custom_instructions: str) -> None:
+    """
+    Update an actor's custom instructions (identity, role, objectives).
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE actors SET custom_instructions = ? WHERE id = ?",
+        (custom_instructions, actor_id)
+    )
+    conn.commit()
+
+
+def regenerate_actor_secret(conn: sqlite3.Connection, actor_id: str) -> str:
+    """
+    Generate a new secret for an actor.
+
+    Returns:
+        The new secret
+    """
+    new_secret = secrets.token_hex(16)
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE actors SET secret = ? WHERE id = ?",
+        (new_secret, actor_id)
+    )
+    conn.commit()
+    return new_secret
+
+
 def get_registered_actor_count(conn: sqlite3.Connection) -> int:
     """
     Get the count of registered (non-eliminated) actors.
     """
     cursor = conn.execute("SELECT COUNT(*) FROM actors WHERE eliminated_at IS NULL")
     return cursor.fetchone()[0]
+
+
+def add_chat_message(conn: sqlite3.Connection, supertick_id: int, from_id: str, message: str) -> None:
+    """
+    Add a chat message to the chat log.
+    Used for testing or manual message insertion.
+    In production, this would be called by the game engine during MERGE phase.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "INSERT INTO chat (supertick_id, from_id, message, created_at) VALUES (?, ?, ?, ?)",
+        (supertick_id, from_id, message, int(time.time()))
+    )
+    conn.commit()
+
+
+def get_world_state_at_tick(conn: sqlite3.Connection, supertick_id: int) -> dict:
+    """
+    Reconstruct world tile state at a specific supertick by replaying tile_history.
+
+    Args:
+        conn: Database connection
+        supertick_id: The supertick to reconstruct
+
+    Returns:
+        dict mapping (x, y) -> color
+    """
+    # Get world dimensions
+    cursor = conn.execute("SELECT value FROM meta WHERE key='width'")
+    width = int(cursor.fetchone()[0])
+    cursor = conn.execute("SELECT value FROM meta WHERE key='height'")
+    height = int(cursor.fetchone()[0])
+
+    # Initialize all tiles as white (#FFFFFF)
+    tiles = {}
+    for x in range(width):
+        for y in range(height):
+            tiles[(x, y)] = "#FFFFFF"
+
+    # Apply all tile changes up to and including the requested supertick
+    cursor = conn.execute(
+        """
+        SELECT x, y, new_color
+        FROM tile_history
+        WHERE supertick_id <= ?
+        ORDER BY supertick_id ASC, created_at ASC
+        """,
+        (supertick_id,)
+    )
+
+    for x, y, new_color in cursor.fetchall():
+        tiles[(x, y)] = new_color
+
+    return tiles

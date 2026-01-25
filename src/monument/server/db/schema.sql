@@ -1,8 +1,8 @@
 -- Monument DB schema (per-namespace)
--- Schema version: 1
+-- Schema version: 4
 -- No ORM, no migrations; fail-fast on version mismatch
 
-PRAGMA user_version = 1;
+PRAGMA user_version = 4;
 
 -- Metadata table: stores simulation state
 CREATE TABLE IF NOT EXISTS meta (
@@ -34,11 +34,13 @@ CREATE TABLE IF NOT EXISTS tile_history (
 -- Actors: registered agents
 CREATE TABLE IF NOT EXISTS actors (
     id TEXT PRIMARY KEY,
+    secret TEXT NOT NULL, -- Authentication secret (prevents impersonation)
     x INTEGER NOT NULL,
     y INTEGER NOT NULL,
     facing TEXT NOT NULL, -- N, S, E, W
-    points INTEGER NOT NULL DEFAULT 100,
-    eliminated_at INTEGER -- Unix timestamp or NULL
+    scopes TEXT NOT NULL DEFAULT '["MOVE","PAINT","SPEAK","WAIT","SKIP"]', -- JSON array of allowed actions
+    custom_instructions TEXT NOT NULL DEFAULT '', -- Agent identity, role, and specific objectives
+    eliminated_at INTEGER -- Unix timestamp or NULL (for future use)
 ) WITHOUT ROWID;
 
 -- Journal: action staging during COLLECT phase
