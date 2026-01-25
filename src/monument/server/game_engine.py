@@ -173,6 +173,11 @@ def merge_and_advance_tick(namespace: str) -> Dict:
                 "UPDATE actors SET x = ?, y = ?, facing = ? WHERE id = ?",
                 (dest_x, dest_y, new_facing, actor_id)
             )
+            # Record in actor_history
+            cursor.execute(
+                "INSERT INTO actor_history (actor_id, supertick_id, x, y, facing, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (actor_id, current_tick, dest_x, dest_y, new_facing, int(time.time()))
+            )
             # Mark as committed
             cursor.execute(
                 "UPDATE journal SET status = 'committed', result_json = ? WHERE supertick_id = ? AND actor_id = ?",
@@ -190,6 +195,11 @@ def merge_and_advance_tick(namespace: str) -> Dict:
             cursor.execute(
                 "UPDATE actors SET x = ?, y = ?, facing = ? WHERE id = ?",
                 (dest_x, dest_y, new_facing, actor_id)
+            )
+            # Record in actor_history
+            cursor.execute(
+                "INSERT INTO actor_history (actor_id, supertick_id, x, y, facing, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                (actor_id, current_tick, dest_x, dest_y, new_facing, int(time.time()))
             )
             cursor.execute(
                 "UPDATE journal SET status = 'committed', result_json = ? WHERE supertick_id = ? AND actor_id = ?",
@@ -293,6 +303,17 @@ def merge_and_advance_tick(namespace: str) -> Dict:
     cursor.execute(
         "UPDATE journal SET status = 'committed', result_json = ? WHERE supertick_id = ? AND intent IN ('WAIT', 'SKIP') AND status = 'pending'",
         (json.dumps({'outcome': 'SUCCESS', 'reason': 'Waited'}), current_tick)
+    )
+
+    # Copy all processed journal entries to audit table for historical tracking
+    cursor.execute(
+        """
+        INSERT INTO audit (supertick_id, actor_id, action_type, params_json, result_json, context_hash, llm_input, llm_output, created_at)
+        SELECT supertick_id, actor_id, intent, params_json, result_json, '', llm_input, llm_output, ?
+        FROM journal
+        WHERE supertick_id = ? AND status IN ('committed', 'rejected')
+        """,
+        (int(time.time()), current_tick)
     )
 
     # Advance tick

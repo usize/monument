@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Optional, List
 
 # Schema version must match PRAGMA user_version in schema.sql
-EXPECTED_SCHEMA_VERSION = 4
+EXPECTED_SCHEMA_VERSION = 6
 
 # Namespace validation regex from design doc
 NAMESPACE_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")
@@ -204,6 +204,20 @@ def register_actor(
         VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
         """,
         (actor_id, secret, x, y, facing, json.dumps(scopes), custom_instructions)
+    )
+
+    # Get current supertick for initial position record
+    cursor.execute("SELECT value FROM meta WHERE key = 'supertick_id'")
+    row = cursor.fetchone()
+    current_tick = int(row[0]) if row else 0
+
+    # Record initial spawn position in actor_history
+    cursor.execute(
+        """
+        INSERT INTO actor_history (actor_id, supertick_id, x, y, facing, created_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """,
+        (actor_id, current_tick, x, y, facing, int(time.time()))
     )
     conn.commit()
 

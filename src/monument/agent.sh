@@ -1,6 +1,12 @@
 #!/bin/bash
 # Simple BSP Agent - Single turn execution
 # Fetches context, asks LLM for action, submits action, exits
+#
+# Exit codes:
+#   0 = Success (action submitted)
+#   1 = Transient failure (retry recommended)
+#   2 = Already submitted (skip to next agent)
+#   3 = Permanent failure (bail out)
 
 set -e
 
@@ -97,9 +103,20 @@ log() {
     fi
 }
 
-error() {
+# Exit codes
+EXIT_SUCCESS=0
+EXIT_TRANSIENT=1
+EXIT_ALREADY_SUBMITTED=2
+EXIT_PERMANENT=3
+
+error_transient() {
     echo "[error] $*" >&2
-    exit 1
+    exit $EXIT_TRANSIENT
+}
+
+error_permanent() {
+    echo "[error] $*" >&2
+    exit $EXIT_PERMANENT
 }
 
 # ============================================================================
@@ -111,13 +128,23 @@ log "LLM: $LLM_API_URL model=$LLM_MODEL"
 
 # 1. Fetch context from Monument API
 log "Fetching context..."
-CONTEXT_RESPONSE=$(curl -s -f -H "X-Agent-Secret: $SECRET" \
-    "${MONUMENT_API_URL}/sim/${NAMESPACE}/agent/${AGENT_ID}/context") \
-    || error "Failed to fetch context from API"
+CONTEXT_RESPONSE=$(curl -s -w "\n%{http_code}" -H "X-Agent-Secret: $SECRET" \
+    "${MONUMENT_API_URL}/sim/${NAMESPACE}/agent/${AGENT_ID}/context")
 
-SUPERTICK=$(echo "$CONTEXT_RESPONSE" | jq -r '.supertick_id')
-CONTEXT_HASH=$(echo "$CONTEXT_RESPONSE" | jq -r '.context_hash')
-HUD=$(echo "$CONTEXT_RESPONSE" | jq -r '.hud')
+CONTEXT_HTTP_CODE=$(echo "$CONTEXT_RESPONSE" | tail -1)
+CONTEXT_BODY=$(echo "$CONTEXT_RESPONSE" | sed '$d')
+
+if [[ "$CONTEXT_HTTP_CODE" == "401" ]]; then
+    error_permanent "Authentication failed for agent $AGENT_ID"
+elif [[ "$CONTEXT_HTTP_CODE" == "404" ]]; then
+    error_permanent "Agent $AGENT_ID not found in namespace $NAMESPACE"
+elif [[ "$CONTEXT_HTTP_CODE" != "200" ]]; then
+    error_transient "Failed to fetch context (HTTP $CONTEXT_HTTP_CODE)"
+fi
+
+SUPERTICK=$(echo "$CONTEXT_BODY" | jq -r '.supertick_id')
+CONTEXT_HASH=$(echo "$CONTEXT_BODY" | jq -r '.context_hash')
+HUD=$(echo "$CONTEXT_BODY" | jq -r '.hud')
 
 log "Supertick: $SUPERTICK, Hash: $CONTEXT_HASH"
 
@@ -162,16 +189,19 @@ LLM_PAYLOAD=$(jq -n \
         ]
     }')
 
-LLM_RESPONSE=$(curl -s -f -X POST "${LLM_API_URL}/chat/completions" \
+LLM_RESPONSE=$(curl -s -X POST "${LLM_API_URL}/chat/completions" \
     -H "Content-Type: application/json" \
-    -d "$LLM_PAYLOAD") \
-    || error "Failed to call LLM API"
+    -d "$LLM_PAYLOAD")
+
+if [[ -z "$LLM_RESPONSE" ]]; then
+    error_transient "Empty response from LLM API (is the server running?)"
+fi
 
 # 4. Extract action from response
 LLM_CONTENT=$(echo "$LLM_RESPONSE" | jq -r '.choices[0].message.content // empty')
 
 if [[ -z "$LLM_CONTENT" ]]; then
-    error "Empty response from LLM"
+    error_transient "Empty content in LLM response"
 fi
 
 log "LLM response: $LLM_CONTENT"
@@ -192,18 +222,29 @@ fi
 
 log "Parsed action: $ACTION"
 
-# 5. Submit action to Monument API
+# 5. Submit action to Monument API (include LLM context for audit trail)
 log "Submitting action..."
+
+# Build the full LLM input for traceability
+LLM_INPUT=$(jq -n \
+    --arg system "$SYSTEM_PROMPT" \
+    --arg user "$USER_PROMPT" \
+    '{system_prompt: $system, user_prompt: $user}' | jq -c .)
+
 ACTION_PAYLOAD=$(jq -n \
     --arg ns "$NAMESPACE" \
     --argjson tick "$SUPERTICK" \
     --arg hash "$CONTEXT_HASH" \
     --arg action "$ACTION" \
+    --arg llm_input "$LLM_INPUT" \
+    --arg llm_output "$LLM_CONTENT" \
     '{
         namespace: $ns,
         supertick_id: $tick,
         context_hash: $hash,
-        action: $action
+        action: $action,
+        llm_input: $llm_input,
+        llm_output: $llm_output
     }')
 
 SUBMIT_RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
@@ -219,10 +260,33 @@ if [[ "$HTTP_CODE" == "200" ]]; then
     echo "[$AGENT_ID] Action submitted: $ACTION"
     MESSAGE=$(echo "$SUBMIT_BODY" | jq -r '.message // empty')
     [[ -n "$MESSAGE" ]] && log "Server: $MESSAGE"
-    exit 0
+    exit $EXIT_SUCCESS
 else
-    echo "[$AGENT_ID] Action rejected (HTTP $HTTP_CODE): $ACTION" >&2
     DETAIL=$(echo "$SUBMIT_BODY" | jq -r '.detail // empty')
+    echo "[$AGENT_ID] Action rejected (HTTP $HTTP_CODE): $ACTION" >&2
     [[ -n "$DETAIL" ]] && echo "  Reason: $DETAIL" >&2
-    exit 1
+
+    # Check for "already submitted" - this is not a real failure
+    if [[ "$DETAIL" == *"already submitted"* ]]; then
+        echo "[$AGENT_ID] Already submitted for this tick, skipping" >&2
+        exit $EXIT_ALREADY_SUBMITTED
+    fi
+
+    # Auth failures are permanent
+    if [[ "$HTTP_CODE" == "401" ]]; then
+        exit $EXIT_PERMANENT
+    fi
+
+    # Permission/scope errors are permanent
+    if [[ "$HTTP_CODE" == "403" ]]; then
+        exit $EXIT_PERMANENT
+    fi
+
+    # Context hash mismatch means tick advanced - could retry but likely permanent for this tick
+    if [[ "$DETAIL" == *"Context hash mismatch"* ]] || [[ "$DETAIL" == *"Supertick mismatch"* ]]; then
+        exit $EXIT_PERMANENT
+    fi
+
+    # Other 400 errors might be transient (malformed action from LLM, etc)
+    exit $EXIT_TRANSIENT
 fi

@@ -6,6 +6,10 @@ CREATE INDEX IF NOT EXISTS idx_tile_history_tick ON tile_history(supertick_id);
 CREATE INDEX IF NOT EXISTS idx_tile_history_pos ON tile_history(x, y);
 CREATE INDEX IF NOT EXISTS idx_tile_history_actor ON tile_history(actor_id);
 
+-- Actor history lookups by tick and actor
+CREATE INDEX IF NOT EXISTS idx_actor_history_tick ON actor_history(supertick_id);
+CREATE INDEX IF NOT EXISTS idx_actor_history_actor ON actor_history(actor_id);
+
 -- Journal lookups by tick
 CREATE INDEX IF NOT EXISTS idx_journal_tick ON journal(supertick_id);
 

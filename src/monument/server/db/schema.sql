@@ -1,8 +1,8 @@
 -- Monument DB schema (per-namespace)
--- Schema version: 4
+-- Schema version: 6
 -- No ORM, no migrations; fail-fast on version mismatch
 
-PRAGMA user_version = 4;
+PRAGMA user_version = 6;
 
 -- Metadata table: stores simulation state
 CREATE TABLE IF NOT EXISTS meta (
@@ -43,6 +43,17 @@ CREATE TABLE IF NOT EXISTS actors (
     eliminated_at INTEGER -- Unix timestamp or NULL (for future use)
 ) WITHOUT ROWID;
 
+-- Actor history: audit trail of all actor position/state changes
+CREATE TABLE IF NOT EXISTS actor_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    actor_id TEXT NOT NULL,
+    supertick_id INTEGER NOT NULL,
+    x INTEGER NOT NULL,
+    y INTEGER NOT NULL,
+    facing TEXT NOT NULL,
+    created_at INTEGER NOT NULL -- Unix timestamp
+);
+
 -- Journal: action staging during COLLECT phase
 CREATE TABLE IF NOT EXISTS journal (
     supertick_id INTEGER NOT NULL,
@@ -51,6 +62,8 @@ CREATE TABLE IF NOT EXISTS journal (
     params_json TEXT, -- JSON parameters for the action
     status TEXT NOT NULL, -- 'pending', 'committed', 'rejected'
     result_json TEXT, -- Outcome and reason
+    llm_input TEXT, -- Full prompt sent to LLM (for traceability)
+    llm_output TEXT, -- Full response from LLM (for traceability)
     submitted_at INTEGER NOT NULL, -- Unix timestamp
     PRIMARY KEY (supertick_id, actor_id)
 ) WITHOUT ROWID;
@@ -64,6 +77,8 @@ CREATE TABLE IF NOT EXISTS audit (
     params_json TEXT,
     result_json TEXT NOT NULL,
     context_hash TEXT NOT NULL,
+    llm_input TEXT, -- Full prompt sent to LLM (for traceability)
+    llm_output TEXT, -- Full response from LLM (for traceability)
     created_at INTEGER NOT NULL -- Unix timestamp
 );
 

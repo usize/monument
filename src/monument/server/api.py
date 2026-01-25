@@ -26,7 +26,9 @@ class ActionSubmission(BaseModel):
     namespace: str
     supertick_id: int
     context_hash: str
-    action: str  # e.g., "PAINT #FF0000 10 20", "MOVE N", "SPEAK hello", "WAIT"
+    action: str  # e.g., "PAINT #FF0000", "MOVE N", "SPEAK hello", "WAIT"
+    llm_input: Optional[str] = None  # Full prompt sent to LLM (for traceability)
+    llm_output: Optional[str] = None  # Full response from LLM (for traceability)
 
 
 class ContextResponse(BaseModel):
@@ -467,14 +469,16 @@ async def submit_agent_action(
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO journal (supertick_id, actor_id, intent, params_json, status, result_json, submitted_at)
-            VALUES (?, ?, ?, ?, 'pending', NULL, ?)
+            INSERT INTO journal (supertick_id, actor_id, intent, params_json, status, result_json, llm_input, llm_output, submitted_at)
+            VALUES (?, ?, ?, ?, 'pending', NULL, ?, ?, ?)
             """,
             (
                 submission.supertick_id,
                 agent_id,
                 intent,
                 json.dumps({"params": params}),
+                submission.llm_input,
+                submission.llm_output,
                 int(time.time())
             )
         )

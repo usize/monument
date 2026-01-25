@@ -3,6 +3,7 @@ Monument Admin Panel (Streamlit)
 Allows namespace creation, world generation, and agent registration.
 """
 
+import json
 import math
 import streamlit as st
 from pathlib import Path
@@ -67,7 +68,106 @@ def get_world_state_at_tick(conn, supertick_id: int):
     return tiles
 
 
-def render_world(conn, tile_size: int = 8, supertick_id: int = None):
+def get_actor_positions_at_tick(conn, supertick_id: int, current_tick: int):
+    """
+    Get actor positions at a specific supertick from actor_history.
+
+    Args:
+        conn: Database connection
+        supertick_id: The supertick to get positions for
+        current_tick: The current supertick (unused, kept for API compatibility)
+
+    Returns:
+        dict mapping actor_id -> (x, y)
+    """
+    # Get list of all active actors
+    cursor = conn.execute("SELECT id FROM actors WHERE eliminated_at IS NULL")
+    actor_ids = [row[0] for row in cursor.fetchall()]
+
+    positions = {}
+
+    # For each actor, get their most recent position at or before the target tick
+    for actor_id in actor_ids:
+        cursor = conn.execute(
+            """
+            SELECT x, y FROM actor_history
+            WHERE actor_id = ? AND supertick_id <= ?
+            ORDER BY supertick_id DESC, id DESC
+            LIMIT 1
+            """,
+            (actor_id, supertick_id)
+        )
+        row = cursor.fetchone()
+        if row:
+            positions[actor_id] = (row[0], row[1])
+        else:
+            # Fallback to current position if no history (shouldn't happen with new schema)
+            cursor = conn.execute("SELECT x, y FROM actors WHERE id = ?", (actor_id,))
+            row = cursor.fetchone()
+            if row:
+                positions[actor_id] = (row[0], row[1])
+
+    return positions
+
+
+def get_chat_messages_at_tick(conn, supertick_id: int):
+    """
+    Get chat messages from a specific supertick.
+
+    Args:
+        conn: Database connection
+        supertick_id: The supertick to get messages for
+
+    Returns:
+        list of (from_id, message) tuples
+    """
+    cursor = conn.execute(
+        """
+        SELECT from_id, message
+        FROM chat
+        WHERE supertick_id = ?
+        ORDER BY id ASC
+        """,
+        (supertick_id,)
+    )
+    return cursor.fetchall()
+
+
+def get_agent_decisions_at_tick(conn, supertick_id: int):
+    """
+    Get agent decisions (actions + LLM context) from the audit table for a specific supertick.
+
+    Args:
+        conn: Database connection
+        supertick_id: The supertick to get decisions for
+
+    Returns:
+        list of dicts with actor_id, action_type, params_json, result_json, llm_input, llm_output
+    """
+    cursor = conn.execute(
+        """
+        SELECT actor_id, action_type, params_json, result_json, llm_input, llm_output
+        FROM audit
+        WHERE supertick_id = ?
+        ORDER BY actor_id ASC
+        """,
+        (supertick_id,)
+    )
+    rows = cursor.fetchall()
+    return [
+        {
+            'actor_id': row[0],
+            'action_type': row[1],
+            'params_json': row[2],
+            'result_json': row[3],
+            'llm_input': row[4],
+            'llm_output': row[5],
+        }
+        for row in rows
+    ]
+
+
+def render_world(conn, tile_size: int = 8, supertick_id: int = None, current_tick: int = None):
     """
     Render the world as a PIL image with tiles and agent names.
 
@@ -75,6 +175,7 @@ def render_world(conn, tile_size: int = 8, supertick_id: int = None):
         conn: Database connection
         tile_size: Pixels per tile (default 8)
         supertick_id: Optional supertick to render (default: current state)
+        current_tick: Current supertick (needed for historical position reconstruction)
 
     Returns:
         PIL Image
@@ -112,11 +213,13 @@ def render_world(conn, tile_size: int = 8, supertick_id: int = None):
             y2 = y1 + tile_size
             draw.rectangle([x1, y1, x2, y2], fill=color)
 
-    # Draw agents (always shows current positions)
-    # Note: We don't track actor position history yet, so historical views
-    # show current agent positions overlaid on historical tile state
-    cursor = conn.execute("SELECT id, x, y FROM actors WHERE eliminated_at IS NULL")
-    actors = cursor.fetchall()
+    # Draw agents - use historical positions if viewing a past tick
+    if supertick_id is not None and current_tick is not None:
+        actor_positions = get_actor_positions_at_tick(conn, supertick_id, current_tick)
+        actors = [(actor_id, x, y) for actor_id, (x, y) in actor_positions.items()]
+    else:
+        cursor = conn.execute("SELECT id, x, y FROM actors WHERE eliminated_at IS NULL")
+        actors = cursor.fetchall()
 
     # Try to load a font, fall back to default if not available
     try:
@@ -302,23 +405,89 @@ elif page == "Manage World":
                     )
 
                 with col_tick:
-                    # Supertick selector for historical viewing
-                    view_tick = st.slider(
-                        "View supertick",
-                        min_value=0,
-                        max_value=current_tick,
-                        value=current_tick,
-                        help="Slide to view previous world states"
-                    )
+                    # Supertick selector for historical viewing (only show if there's history)
+                    if current_tick > 0:
+                        view_tick = st.slider(
+                            "View supertick",
+                            min_value=0,
+                            max_value=current_tick,
+                            value=current_tick,
+                            help="Slide to view previous world states"
+                        )
+                    else:
+                        view_tick = 0
+                        st.caption("No history yet (tick 0)")
 
                 # Render world at selected supertick
                 if view_tick == current_tick:
                     world_img = render_world(conn, tile_size=tile_size)
                     st.image(world_img, caption=f"{selected_namespace} - Tick {current_tick} (Current)", use_container_width=False)
                 else:
-                    world_img = render_world(conn, tile_size=tile_size, supertick_id=view_tick)
+                    world_img = render_world(conn, tile_size=tile_size, supertick_id=view_tick, current_tick=current_tick)
                     st.image(world_img, caption=f"{selected_namespace} - Tick {view_tick} (Historical)", use_container_width=False)
                     st.info(f"📜 Viewing historical state at tick {view_tick}. Current tick is {current_tick}.")
+
+                # Chat messages for selected tick
+                st.subheader(f"Chat Messages (Tick {view_tick})")
+                chat_messages = get_chat_messages_at_tick(conn, view_tick)
+                if chat_messages:
+                    for from_id, message in chat_messages:
+                        st.markdown(f"**{from_id}:** {message}")
+                else:
+                    st.caption("No messages this tick.")
+
+                # Agent decisions for selected tick
+                st.subheader(f"Agent Decisions (Tick {view_tick})")
+                decisions = get_agent_decisions_at_tick(conn, view_tick)
+                if decisions:
+                    for decision in decisions:
+                        actor_id = decision['actor_id']
+                        action_type = decision['action_type']
+                        params = json.loads(decision['params_json']) if decision['params_json'] else {}
+                        result = json.loads(decision['result_json']) if decision['result_json'] else {}
+
+                        outcome = result.get('outcome', 'UNKNOWN')
+                        reason = result.get('reason', '')
+                        params_str = params.get('params', '')
+
+                        # Color-code by outcome
+                        if outcome == 'SUCCESS':
+                            icon = "✅"
+                        elif outcome == 'CONFLICT_LOST':
+                            icon = "⚔️"
+                        elif outcome == 'NO_OP':
+                            icon = "➖"
+                        else:
+                            icon = "❌"
+
+                        with st.expander(f"{icon} **{actor_id}**: {action_type} {params_str} → {outcome}"):
+                            st.markdown(f"**Result:** {reason}")
+
+                            # LLM Context (nested expanders)
+                            if decision['llm_input'] or decision['llm_output']:
+                                st.markdown("---")
+                                st.markdown("**LLM Decision Context:**")
+
+                                if decision['llm_input']:
+                                    with st.expander("📥 LLM Input (Prompt)"):
+                                        try:
+                                            llm_input = json.loads(decision['llm_input'])
+                                            if 'system_prompt' in llm_input:
+                                                st.markdown("**System Prompt:**")
+                                                st.code(llm_input['system_prompt'], language=None)
+                                            if 'user_prompt' in llm_input:
+                                                st.markdown("**User Prompt:**")
+                                                st.code(llm_input['user_prompt'], language=None)
+                                        except json.JSONDecodeError:
+                                            st.code(decision['llm_input'], language=None)
+
+                                if decision['llm_output']:
+                                    with st.expander("📤 LLM Output (Response)"):
+                                        st.code(decision['llm_output'], language=None)
+                            else:
+                                st.caption("No LLM context recorded (action may have been submitted manually)")
+                else:
+                    st.caption("No decisions recorded for this tick.")
 
                 # Agent registration
                 st.subheader("Register Agents")
@@ -333,7 +502,6 @@ elif page == "Manage World":
                         actor_id, secret, x, y, facing, scopes_json, custom_instructions = actor
 
                         with st.expander(f"🤖 {actor_id} at ({x}, {y})"):
-                            import json
                             scopes = json.loads(scopes_json)
 
                             # Agent details
