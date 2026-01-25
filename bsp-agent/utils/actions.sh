@@ -28,8 +28,8 @@ Commands:
 
   action <namespace> <agent-id> <secret> <action>
       Submit an action for an agent
-      Example: $0 action demo-world alice abc123def456 "PAINT #FF0000 10 10"
       Example: $0 action demo-world alice abc123def456 "MOVE N"
+      Example: $0 action demo-world alice abc123def456 "PAINT #FF0000"
       Example: $0 action demo-world alice abc123def456 "SPEAK hello everyone"
       Example: $0 action demo-world alice abc123def456 "WAIT"
 
