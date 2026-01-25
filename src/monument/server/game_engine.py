@@ -141,18 +141,17 @@ def merge_and_advance_tick(namespace: str) -> Dict:
             moves.append((actor_id, dest_x, dest_y, new_facing, params_json))
 
         elif intent == 'PAINT':
-            # Parse: "color x y"
-            parts = params_str.split()
-            if len(parts) >= 3:
-                color = parts[0]
-                try:
-                    tile_x = int(parts[1])
-                    tile_y = int(parts[2])
-                    # Validate bounds
-                    if 0 <= tile_x < width and 0 <= tile_y < height:
-                        paints.append((actor_id, tile_x, tile_y, color, params_json))
-                except ValueError:
-                    pass
+            # Get current position - agents can only paint their current tile
+            cursor.execute("SELECT x, y FROM actors WHERE id = ?", (actor_id,))
+            row = cursor.fetchone()
+            if not row:
+                continue
+            tile_x, tile_y = row
+
+            # Parse color only
+            color = params_str.strip()
+            if color:
+                paints.append((actor_id, tile_x, tile_y, color, params_json))
 
         elif intent == 'SPEAK':
             speaks.append((actor_id, params_str, params_json))

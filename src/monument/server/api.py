@@ -137,38 +137,27 @@ def build_hud(conn, actor_id: str, namespace: str, supertick_id: int, context_ha
     width = int(meta.get('width', 64))
     height = int(meta.get('height', 64))
 
-    # Viewport: 8x8 radius (17x17 grid centered on agent)
-    viewport_radius = 8
-    min_x = max(0, x - viewport_radius)
-    max_x = min(width - 1, x + viewport_radius)
-    min_y = max(0, y - viewport_radius)
-    max_y = min(height - 1, y + viewport_radius)
-
-    # Get visible tiles
+    # Get all tiles (full map visibility, no viewport restriction)
     cursor = conn.execute(
         """
         SELECT x, y, color FROM tiles
-        WHERE x BETWEEN ? AND ? AND y BETWEEN ? AND ?
         ORDER BY y, x
-        """,
-        (min_x, max_x, min_y, max_y)
+        """
     )
     visible_tiles = cursor.fetchall()
 
-    # Get visible actors (excluding self)
+    # Get all actors
     cursor = conn.execute(
         """
         SELECT id, x, y, facing FROM actors
         WHERE eliminated_at IS NULL
-        AND x BETWEEN ? AND ? AND y BETWEEN ? AND ?
-        """,
-        (min_x, max_x, min_y, max_y)
+        """
     )
     visible_actors = cursor.fetchall()
 
-    # Build viewport section
-    hud.append("VISIBLE TILES:")
-    hud.append(f"  Viewport: ({min_x}, {min_y}) to ({max_x}, {max_y})")
+    # Build world state section
+    hud.append("WORLD TILES:")
+    hud.append(f"  World size: {width}x{height}")
     hud.append(f"  Total tiles: {len(visible_tiles)}")
 
     # Group tiles by color for compact display
@@ -189,7 +178,7 @@ def build_hud(conn, actor_id: str, namespace: str, supertick_id: int, context_ha
             hud.append(f"    {color}: {len(positions)} tiles")
 
     hud.append("")
-    hud.append("VISIBLE ACTORS:")
+    hud.append("ACTORS:")
     if visible_actors:
         for other_id, other_x, other_y, other_facing in visible_actors:
             if other_id == actor_id:
@@ -198,35 +187,61 @@ def build_hud(conn, actor_id: str, namespace: str, supertick_id: int, context_ha
                 distance = abs(other_x - x) + abs(other_y - y)  # Manhattan distance
                 hud.append(f"  {other_id} at ({other_x}, {other_y}) facing {other_facing} [distance: {distance}]")
     else:
-        hud.append("  No other actors visible")
+        hud.append("  No other actors")
 
     hud.append("")
 
-    # Recent chat messages (current tick and previous 2 ticks, max 10 messages)
-    min_tick = max(0, supertick_id - 2)
+    # All chat messages from the previous supertick (no limit)
+    prev_tick = max(0, supertick_id - 1)
     cursor = conn.execute(
         """
         SELECT supertick_id, from_id, message FROM chat
         WHERE supertick_id >= ?
-        ORDER BY supertick_id DESC, id DESC
-        LIMIT 10
+        ORDER BY supertick_id ASC, id ASC
         """,
-        (min_tick,)
+        (prev_tick,)
     )
     chat_messages = cursor.fetchall()
 
-    hud.append("RECENT CHAT:")
+    hud.append("CHAT (from last supertick):")
     if chat_messages:
-        # Reverse to show oldest first
-        for msg_tick, from_id, message in reversed(chat_messages):
+        for msg_tick, from_id, message in chat_messages:
             tick_label = "current" if msg_tick == supertick_id else f"tick {msg_tick}"
             hud.append(f"  [{tick_label}] {from_id}: {message}")
     else:
-        hud.append("  No recent messages")
+        hud.append("  No messages")
 
     hud.append("")
 
-    # TODO: Add last tick result when we have tick history
+    # Context from previous supertick (audit history)
+    if supertick_id > 0:
+        prev_tick = supertick_id - 1
+        cursor = conn.execute(
+            """
+            SELECT actor_id, action_type, params_json, result_json FROM audit
+            WHERE supertick_id = ?
+            ORDER BY id ASC
+            """,
+            (prev_tick,)
+        )
+        prev_actions = cursor.fetchall()
+
+        hud.append(f"PREVIOUS SUPERTICK ({prev_tick}) RESULTS:")
+        if prev_actions:
+            for audit_actor_id, action_type, params_json, result_json in prev_actions:
+                params = json.loads(params_json) if params_json else {}
+                result = json.loads(result_json) if result_json else {}
+                outcome = result.get("outcome", "UNKNOWN")
+                reason = result.get("reason", "")
+                params_str = params.get("params", "") if params else ""
+                if audit_actor_id == actor_id:
+                    hud.append(f"  (YOU) {action_type} {params_str} -> {outcome}: {reason}")
+                else:
+                    hud.append(f"  {audit_actor_id}: {action_type} {params_str} -> {outcome}: {reason}")
+        else:
+            hud.append("  No actions recorded")
+        hud.append("")
+
     # TODO: Add recalled memories
 
     hud.append("AVAILABLE ACTIONS:")
@@ -234,7 +249,7 @@ def build_hud(conn, actor_id: str, namespace: str, supertick_id: int, context_ha
     # Filter actions based on agent's scopes
     action_descriptions = {
         "MOVE": "  MOVE <direction>     - Move in direction (N, S, E, W)",
-        "PAINT": "  PAINT <color> <x> <y> - Paint a tile (color: #RRGGBB)",
+        "PAINT": "  PAINT <color>        - Paint your current tile (color: #RRGGBB)",
         "SPEAK": "  SPEAK <message>      - Send a chat message",
         "WAIT": "  WAIT                 - Do nothing this tick",
         "SKIP": "  SKIP                 - Explicitly skip this tick"
@@ -425,12 +440,12 @@ async def submit_agent_action(
                     detail=f"MOVE action requires direction (N, S, E, or W). Got: '{submission.action}'"
                 )
         elif intent == 'PAINT':
-            paint_parts = params.strip().split()
-            if len(paint_parts) < 3:
+            color = params.strip()
+            if not color:
                 conn.close()
                 raise HTTPException(
                     status_code=400,
-                    detail=f"PAINT action requires format 'PAINT <color> <x> <y>'. Got: '{submission.action}'"
+                    detail=f"PAINT action requires format 'PAINT <color>'. Got: '{submission.action}'"
                 )
         elif intent == 'SPEAK':
             if not params.strip():
