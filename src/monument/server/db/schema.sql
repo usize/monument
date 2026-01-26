@@ -1,8 +1,8 @@
 -- Monument DB schema (per-namespace)
--- Schema version: 6
+-- Schema version: 7
 -- No ORM, no migrations; fail-fast on version mismatch
 
-PRAGMA user_version = 6;
+PRAGMA user_version = 7;
 
 -- Metadata table: stores simulation state
 CREATE TABLE IF NOT EXISTS meta (
@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS actors (
     facing TEXT NOT NULL, -- N, S, E, W
     scopes TEXT NOT NULL DEFAULT '["MOVE","PAINT","SPEAK","WAIT","SKIP"]', -- JSON array of allowed actions
     custom_instructions TEXT NOT NULL DEFAULT '', -- Agent identity, role, and specific objectives
+    llm_model TEXT NOT NULL DEFAULT '', -- Preferred LLM model for this agent (optional override)
     eliminated_at INTEGER -- Unix timestamp or NULL (for future use)
 ) WITHOUT ROWID;
 

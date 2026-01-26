@@ -17,7 +17,7 @@ MONUMENT_API_URL="${MONUMENT_API_URL:-http://localhost:8000}"
 LLM_API_URL="${LLM_API_URL:-http://localhost:8080/v1}"
 LLM_MODEL="${LLM_MODEL:-unsloth/GLM-4.5-Air-GGUF:IQ4_NL}"
 LLM_TEMPERATURE="${LLM_TEMPERATURE:-0.7}"
-HISTORY_LENGTH="${MONUMENT_HISTORY_LENGTH:-10}"
+HISTORY_LENGTH="${MONUMENT_HISTORY_LENGTH:-20}"
 CHAT_LENGTH="${MONUMENT_CHAT_LENGTH:-}"
 
 # ============================================================================
@@ -35,7 +35,7 @@ Options:
   -n, --namespace <ns>      Simulation namespace
   -a, --agent <id>          Agent ID
   -s, --secret <secret>     Agent secret
-  --history-length <n>      Number of past actions (and chat messages) to include (default: 3)
+  --history-length <n>      Number of past actions (and chat messages) to include (default: 20)
   --chat-length <n>         Override number of chat messages (default: history length)
   -m, --model <model>       LLM model name (default: \$LLM_MODEL)
   -u, --llm-url <url>       LLM API URL (default: \$LLM_API_URL)

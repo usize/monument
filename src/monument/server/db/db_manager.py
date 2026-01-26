@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Optional, List
 
 # Schema version must match PRAGMA user_version in schema.sql
-EXPECTED_SCHEMA_VERSION = 6
+EXPECTED_SCHEMA_VERSION = 7
 
 # Namespace validation regex from design doc
 NAMESPACE_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")
@@ -172,7 +172,8 @@ def register_actor(
     facing: str = "N",
     scopes: Optional[List[str]] = None,
     secret: Optional[str] = None,
-    custom_instructions: str = ""
+    custom_instructions: str = "",
+    llm_model: str = ""
 ) -> str:
     """
     Register a new actor in the world.
@@ -200,10 +201,10 @@ def register_actor(
     cursor = conn.cursor()
     cursor.execute(
         """
-        INSERT OR REPLACE INTO actors (id, secret, x, y, facing, scopes, custom_instructions, eliminated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+        INSERT OR REPLACE INTO actors (id, secret, x, y, facing, scopes, custom_instructions, llm_model, eliminated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """,
-        (actor_id, secret, x, y, facing, json.dumps(scopes), custom_instructions)
+        (actor_id, secret, x, y, facing, json.dumps(scopes), custom_instructions, llm_model)
     )
 
     # Get current supertick for initial position record
@@ -253,6 +254,18 @@ def update_actor_instructions(conn: sqlite3.Connection, actor_id: str, custom_in
     cursor.execute(
         "UPDATE actors SET custom_instructions = ? WHERE id = ?",
         (custom_instructions, actor_id)
+    )
+    conn.commit()
+
+
+def update_actor_llm_model(conn: sqlite3.Connection, actor_id: str, llm_model: str) -> None:
+    """
+    Update an actor's preferred LLM model.
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE actors SET llm_model = ? WHERE id = ?",
+        (llm_model, actor_id)
     )
     conn.commit()
 
