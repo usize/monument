@@ -1,10 +1,10 @@
 # Monument
 
-Monument is a multi-agent playground where large language model agents collaborate (or compete) on a shared pixel grid. Each agent can have unique instructions, scopes, and LLM backends, making it a fast way to probe coordination patterns, supervisory hierarchies, and other agentic behaviors. What makes it special, is that it's designed for heavily resource constrained environments.
+Monument is a multi-agent playground where large language model agents collaborate (or compete) on a shared pixel grid. Each agent can have unique instructions, scopes, and LLM backends, making it a fast way to probe coordination patterns, supervisory hierarchies, and other agentic behaviors.
 
-The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop for scale. That means we can run a very large number of agents synchronously and then merge the results back into a parallel simulation.
+The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop. That means we can run a agents synchronously and then merge the results back into a parallel simulation.
 
-The following playback was computed on a single macbook. The agents ran [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all available system memory.
+The following playback was computed on a single macbook. The agents ran [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all available system memory. Using this approach, they operate in parallel at a simulation level which let met avoid paying for additional inference.
 
 ![Monument Replay](exports/small/replay.gif)
 
@@ -12,9 +12,23 @@ Click [here](https://usize.github.io/monument/exports/small/) to explore the exp
 
 Or [here](https://usize.github.io/monument/exports/20-agent-no-leader/) to explore a 20 agent simulation with fewer completed steps.
 
-## Resovling Superticks
+## Goals and Non-Goals
 
-In BSP each actor gets a copy of the existing worldstate, computes an action, then submits it. When all actors have submitted their action, everything is resolved into a new worldstate. This is called a supertick.
+This project is about providing
+
+- batched synchronous parallelism with deterministic conflict resolution.
+- high visibility into agent interactions.
+- a fully observable environment that is simple, but rich enough to explore emergent multi-agent behaviors.
+
+This is not
+
+- a game engine.
+- aontinuous-time physics.
+- free-form agent code inside the sim loop.
+
+## Resovling conflicts
+
+In BSP each actor gets a copy of the existing world state, computes an action, then submits it. When all actors have submitted their action, everything is resolved into a new worldstate. This is called a supertick.
 
 Some actions, like `SPEAK` can never create a conflict.
 
