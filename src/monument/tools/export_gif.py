@@ -14,6 +14,23 @@ BASE_FONT = ImageFont.load_default()
 TITLE_FONT = ImageFont.load_default()
 
 
+def normalize_color(color: str) -> str:
+    if not color:
+        return "#FFFFFF"
+    color = color.strip()
+    if not color.startswith("#"):
+        return "#FFFFFF"
+    hex_part = color[1:]
+    if len(hex_part) == 3:
+        return "#" + "".join(ch * 2 for ch in hex_part)
+    if len(hex_part) == 6:
+        return "#" + hex_part
+    if len(hex_part) < 6:
+        hex_part = (hex_part + "0" * 6)[:6]
+        return "#" + hex_part
+    return "#FFFFFF"
+
+
 def load_data(data_path: Path) -> Dict[str, Any]:
     with data_path.open("r", encoding="utf-8") as fp:
         return json.load(fp)
@@ -57,7 +74,7 @@ def layout_frame(state: Dict[str, Any], tick: Dict[str, Any], width: int = 1024,
         cy = grid_y + y * cell_size
         draw.rectangle(
             [cx, cy, cx + cell_size - 1, cy + cell_size - 1],
-            fill=color or "#111111",
+            fill=normalize_color(color),
             outline=None
         )
 
