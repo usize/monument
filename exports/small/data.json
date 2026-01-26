@@ -27,7 +27,7 @@
         "SKIP"
       ],
       "custom_instructions": "Try your best to coordinate with other agents to avoid duplicating work.",
-      "llm_model": "",
+      "llm_model": "unsloth/GLM-4.5-Air-GGUF",
       "eliminated_at": null
     },
     {
@@ -45,7 +45,7 @@
         "SKIP"
       ],
       "custom_instructions": "Try your best to coordinate with other agents to avoid duplicating work.",
-      "llm_model": "",
+      "llm_model": "unsloth/GLM-4.5-Air-GGUF",
       "eliminated_at": null
     },
     {
@@ -63,7 +63,7 @@
         "SKIP"
       ],
       "custom_instructions": "Try your best to coordinate with other agents to avoid duplicating work.",
-      "llm_model": "",
+      "llm_model": "unsloth/GLM-4.5-Air-GGUF",
       "eliminated_at": null
     },
     {
@@ -81,7 +81,7 @@
         "SKIP"
       ],
       "custom_instructions": "Try your best to coordinate with other agents to avoid duplicating work.",
-      "llm_model": "",
+      "llm_model": "unsloth/GLM-4.5-Air-GGUF",
       "eliminated_at": null
     }
   ],
