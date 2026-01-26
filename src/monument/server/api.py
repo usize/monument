@@ -12,7 +12,7 @@ from fastapi import FastAPI, HTTPException, Header, Query
 from pydantic import BaseModel
 
 from monument.server.db import db_manager
-from monument.server import game_engine
+from monument.server import bsp_engine
 
 
 app = FastAPI(title="Monument API", version="1.0.0")
@@ -589,10 +589,10 @@ async def submit_agent_action(
         conn.close()
 
         # Check if we can auto-advance the tick
-        can_advance, reason = game_engine.can_advance_tick(namespace)
+        can_advance, reason = bsp_engine.can_advance_tick(namespace)
         if can_advance:
             # All agents submitted - trigger merge and advance
-            merge_results = game_engine.merge_and_advance_tick(namespace)
+            merge_results = bsp_engine.merge_and_advance_tick(namespace)
             return ActionResponse(
                 success=True,
                 message=f"Action '{intent}' submitted. Tick advanced: {merge_results['tick']} → {merge_results['tick'] + 1}. {reason}"
