@@ -17,7 +17,7 @@ MONUMENT_API_URL="${MONUMENT_API_URL:-http://localhost:8000}"
 LLM_API_URL="${LLM_API_URL:-http://localhost:8080/v1}"
 LLM_MODEL="${LLM_MODEL:-unsloth/GLM-4.5-Air-GGUF:IQ4_NL}"
 LLM_TEMPERATURE="${LLM_TEMPERATURE:-0.7}"
-HISTORY_LENGTH="${MONUMENT_HISTORY_LENGTH:-3}"
+HISTORY_LENGTH="${MONUMENT_HISTORY_LENGTH:-10}"
 CHAT_LENGTH="${MONUMENT_CHAT_LENGTH:-}"
 
 # ============================================================================

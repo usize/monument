@@ -127,7 +127,7 @@ while IFS='|' read -r AGENT_ID SECRET; do
 
         # Run agent.sh
         set +e
-        "$SCRIPT_DIR/src/monument/agent.sh" "$NAMESPACE" "$AGENT_ID" "$SECRET" $VERBOSE
+        "$SCRIPT_DIR/src/monument/agent/agent.sh" "$NAMESPACE" "$AGENT_ID" "$SECRET" $VERBOSE
         EXIT_CODE=$?
         set -e
 
