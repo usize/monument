@@ -93,7 +93,13 @@ log "=== Starting Tick for namespace: $NAMESPACE ==="
 log "Database: $DB_PATH"
 log "Max retries: $MAX_RETRIES, Retry delay: ${RETRY_DELAY}s"
 
-# Query agents from database
+# Query agents and current supertick
+CURRENT_TICK=$(sqlite3 "$DB_PATH" "SELECT value FROM meta WHERE key='supertick_id';")
+if [[ -z "$CURRENT_TICK" ]]; then
+    echo "Error: Could not read current supertick from meta table" >&2
+    exit 1
+fi
+
 AGENTS=$(sqlite3 "$DB_PATH" "SELECT id, secret FROM actors WHERE eliminated_at IS NULL ORDER BY id;")
 
 if [[ -z "$AGENTS" ]]; then
@@ -112,6 +118,14 @@ FAIL_COUNT=0
 
 # Process each agent
 while IFS='|' read -r AGENT_ID SECRET; do
+    # Skip agents that already submitted for this tick
+    SUBMITTED=$(sqlite3 "$DB_PATH" "SELECT 1 FROM journal WHERE supertick_id = $CURRENT_TICK AND actor_id = '$AGENT_ID' LIMIT 1;")
+    if [[ -n "$SUBMITTED" ]]; then
+        log "⏭️  $AGENT_ID: Already submitted for supertick $CURRENT_TICK, skipping"
+        SKIP_COUNT=$((SKIP_COUNT + 1))
+        continue
+    fi
+
     log "--- Processing agent: $AGENT_ID ---"
 
     ATTEMPT=0

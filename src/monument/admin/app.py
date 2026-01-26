@@ -493,13 +493,13 @@ elif page == "Manage World":
                 st.subheader("Register Agents")
 
                 # Show current actors
-                cursor = conn.execute("SELECT id, secret, x, y, facing, scopes, custom_instructions FROM actors WHERE eliminated_at IS NULL")
+                cursor = conn.execute("SELECT id, secret, x, y, facing, scopes, custom_instructions, llm_model FROM actors WHERE eliminated_at IS NULL")
                 actors = cursor.fetchall()
 
                 if actors:
                     st.write(f"**Registered Agents ({len(actors)}):**")
                     for actor in actors:
-                        actor_id, secret, x, y, facing, scopes_json, custom_instructions = actor
+                        actor_id, secret, x, y, facing, scopes_json, custom_instructions, llm_model = actor
 
                         with st.expander(f"🤖 {actor_id} at ({x}, {y})"):
                             scopes = json.loads(scopes_json)
@@ -513,6 +513,12 @@ elif page == "Manage World":
                                 st.text(f"Secret: {secret}")
                                 if st.button("📋 Copy Secret", key=f"copy_{actor_id}"):
                                     st.code(secret, language=None)
+
+                            llm_model_input = st.text_input(
+                                "LLM Model (optional override)",
+                                value=llm_model or "",
+                                key=f"llm_model_{actor_id}"
+                            )
 
                             # Custom instructions editor
                             st.write("**Custom Instructions (Identity & Objectives):**")
@@ -549,6 +555,11 @@ elif page == "Manage World":
                                     db_manager.update_actor_scopes(conn, actor_id, new_scopes)
                                     st.success(f"Updated scopes for {actor_id}")
                                     st.rerun()
+
+                            if st.button("💾 Save LLM Model", key=f"save_llm_{actor_id}"):
+                                db_manager.update_actor_llm_model(conn, actor_id, llm_model_input.strip())
+                                st.success(f"Updated LLM model for {actor_id}")
+                                st.rerun()
 
                             col_regen, col_delete = st.columns(2)
                             with col_regen:
@@ -600,6 +611,12 @@ elif page == "Manage World":
                         help="These instructions will be applied to all registered agents. Leave empty for no instructions. You can edit individual agents later."
                     )
 
+                    default_llm_model = st.text_input(
+                        "Default LLM Model (optional, applies to these agents)",
+                        value="",
+                        help="Set a model identifier per agent (e.g., local model path or API model). Leave blank to use agent defaults."
+                    )
+
                     register_button = st.form_submit_button("Register Agents (Grid Layout)")
 
                     if register_button:
@@ -611,8 +628,8 @@ elif page == "Manage World":
                             grid_cols = math.ceil(math.sqrt(num_agents))
                             grid_rows = math.ceil(num_agents / grid_cols)
 
-                            x_spacing = width // (grid_cols + 1)
-                            y_spacing = height // (grid_rows + 1)
+                            x_spacing = width / (grid_cols + 1)
+                            y_spacing = height / (grid_rows + 1)
 
                             # Validate at least one scope is selected
                             if not default_scopes:
@@ -625,8 +642,8 @@ elif page == "Manage World":
                                     row = i // grid_cols
                                     col = i % grid_cols
 
-                                    x = (col + 1) * x_spacing
-                                    y = (row + 1) * y_spacing
+                                    x = min(width - 1, max(0, int(round((col + 1) * x_spacing) - 1)))
+                                    y = min(height - 1, max(0, int(round((row + 1) * y_spacing) - 1)))
 
                                     # Use custom secret only if registering a single agent
                                     agent_secret = custom_secret if (num_agents == 1 and custom_secret) else None
@@ -635,7 +652,8 @@ elif page == "Manage World":
                                         conn, agent_id, x, y, "N",
                                         scopes=default_scopes,
                                         secret=agent_secret,
-                                        custom_instructions=default_instructions
+                                        custom_instructions=default_instructions,
+                                        llm_model=default_llm_model.strip()
                                     )
                                     registered_secrets.append((agent_id, secret))
 
