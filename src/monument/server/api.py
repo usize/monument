@@ -284,6 +284,30 @@ def build_hud(
         hud.append("  No historical actions available")
     hud.append("")
 
+    # Supervisor visibility into other agents' actions
+    if "SUPERVISOR" in scopes:
+        cursor = conn.execute(
+            """
+            SELECT supertick_id, actor_id, action_type, params_json
+            FROM audit
+            WHERE actor_id != ?
+            ORDER BY id DESC
+            LIMIT ?
+            """,
+            (actor_id, history_length)
+        )
+        supervisor_actions = cursor.fetchall()
+        hud.append(f"SUPERVISOR ACTION LOG (last {history_length} from other agents):")
+        if supervisor_actions:
+            for row in reversed(supervisor_actions):
+                log_tick, log_actor_id, log_action, log_params_json = row
+                params = json.loads(log_params_json) if log_params_json else {}
+                params_str = params.get("params", "")
+                hud.append(f"  Tick {log_tick}: {log_actor_id} -> {log_action} {params_str}")
+        else:
+            hud.append("  No recent actions from other agents")
+        hud.append("")
+
     # Recent chat messages regardless of tick
     cursor = conn.execute(
         """

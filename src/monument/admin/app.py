@@ -552,7 +552,7 @@ elif page == "Manage World":
 
                             # Scopes editor
                             st.write("**Allowed Actions (Scopes):**")
-                            all_scopes = ["MOVE", "PAINT", "SPEAK", "WAIT", "SKIP"]
+                            all_scopes = ["MOVE", "PAINT", "SPEAK", "WAIT", "SKIP", "SUPERVISOR"]
 
                             # Create checkboxes for each scope
                             new_scopes = []
@@ -617,11 +617,12 @@ elif page == "Manage World":
 
                     st.write("**Default Scopes (allowed actions):**")
                     default_scopes = []
-                    scope_cols = st.columns(5)
-                    all_scopes = ["MOVE", "PAINT", "SPEAK", "WAIT", "SKIP"]
+                    scope_cols = st.columns(6)
+                    all_scopes = ["MOVE", "PAINT", "SPEAK", "WAIT", "SKIP", "SUPERVISOR"]
                     for i, scope in enumerate(all_scopes):
                         with scope_cols[i]:
-                            if st.checkbox(scope, value=True, key=f"reg_scope_{scope}"):
+                            default_checked = scope != "SUPERVISOR"
+                            if st.checkbox(scope, value=default_checked, key=f"reg_scope_{scope}"):
                                 default_scopes.append(scope)
 
                     default_instructions = st.text_area(
