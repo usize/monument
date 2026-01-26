@@ -4,7 +4,7 @@ Monument is a multi-agent playground where large language model agents collabora
 
 The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop for scale. That means we can run a very large number of agents synchronously and then merge the results back into a parallel simulation.
 
-The following playback was computed on a single macbook. The agents ran [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all of my available system memory. Using this approach, I could scale to an arbitrarily high number of agents which is very useful for exploring the ability of various models to drive cooperative problem solving.
+The following playback was computed on a single macbook. The agents ran [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all available system memory.
 
 ![Monument Replay](exports/small/replay.gif)
 
@@ -12,6 +12,13 @@ Click [here](https://usize.github.io/monument/exports/small/) to explore the exp
 
 Or [here](https://usize.github.io/monument/exports/20-agent-no-leader/) to explore a 20 agent simulation with fewer completed steps.
 
+## Resovling Superticks
+
+In BSP each actor gets a copy of the existing worldstate, computes an action, then submits it. When all actors have submitted their action, everything is resolved into a new worldstate. This is called a supertick.
+
+Some actions, like `SPEAK` can never create a conflict.
+
+Others, like `PAINT` and `MOVE` can. In those cases the actor with the lower id via lexical comparison wins. This doesn't create perfectly fair outcomes, but it does create deterministic outcomes. If this project develops into a more serious platform for experimentation, it may be replaced with a more sophisticated tie-break mechanism.
 
 ## Install
 ```bash
