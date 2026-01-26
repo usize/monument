@@ -167,6 +167,26 @@ def get_agent_decisions_at_tick(conn, supertick_id: int):
     ]
 
 
+def normalize_color(color: str) -> str:
+    """
+    Ensure colors are valid #RRGGBB strings for PIL.
+    """
+    if not color:
+        return "#FFFFFF"
+    color = color.strip()
+    if not color.startswith("#"):
+        return "#FFFFFF"
+    hex_part = color[1:]
+    if len(hex_part) == 3:
+        return "#" + "".join(ch * 2 for ch in hex_part)
+    if len(hex_part) == 6:
+        return "#" + hex_part
+    if len(hex_part) < 6:
+        hex_part = (hex_part + "0" * 6)[:6]
+        return "#" + hex_part
+    return "#FFFFFF"
+
+
 def render_world(conn, tile_size: int = 8, supertick_id: int = None, current_tick: int = None):
     """
     Render the world as a PIL image with tiles and agent names.
@@ -201,7 +221,7 @@ def render_world(conn, tile_size: int = 8, supertick_id: int = None, current_tic
             y1 = y * tile_size
             x2 = x1 + tile_size
             y2 = y1 + tile_size
-            draw.rectangle([x1, y1, x2, y2], fill=color)
+            draw.rectangle([x1, y1, x2, y2], fill=normalize_color(color))
     else:
         # Use current state
         cursor = conn.execute("SELECT x, y, color FROM tiles")
@@ -211,7 +231,7 @@ def render_world(conn, tile_size: int = 8, supertick_id: int = None, current_tic
             y1 = y * tile_size
             x2 = x1 + tile_size
             y2 = y1 + tile_size
-            draw.rectangle([x1, y1, x2, y2], fill=color)
+            draw.rectangle([x1, y1, x2, y2], fill=normalize_color(color))
 
     # Draw agents - use historical positions if viewing a past tick
     if supertick_id is not None and current_tick is not None:
