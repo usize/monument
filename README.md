@@ -59,6 +59,8 @@ The basic "agent" itself is just a shell script that uses curl to speak directly
 
 The prompts and scopes of each agent are defined within the context of the sim itself. The idea is to keep agent definitions centralized to prevent drift which would muddy comparisons across simulations.
 
+Beyond system prompts, each agent has scopes assigned to it which determine the actions it is allowed to perform. It may also have a 'supervisor' scope which allows it to see the actions of all of the agents in the sim. This allows comparissons across: leaderless (swarm), single supervisor, multiple supervisor, director and other configurations.
+
 ## Observability
 
 Each agent turn is recorded in an audit log. All inference requests and responses are logged and attached to particular actions along with the results of those actions. This allows us to understand how agents decided to make their actions, and to understand how the initial conditions of the simulation impact those decisions.
