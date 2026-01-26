@@ -22,9 +22,10 @@ Usage:
   $0 status
 
 Commands:
-  context <namespace> <agent-id> <secret>
+  context <namespace> <agent-id> <secret> [history-length]
       Fetch the current context (HUD) for an agent
       Example: $0 context demo-world alice abc123def456
+      Example: $0 context demo-world alice abc123def456 5
 
   action <namespace> <agent-id> <secret> <action>
       Submit an action for an agent
@@ -39,6 +40,8 @@ Commands:
 Environment:
   MONUMENT_API_URL       API server URL (default: http://localhost:8000)
   MONUMENT_AGENT_SECRET  Default secret if not provided as argument
+  MONUMENT_HISTORY_LENGTH  Default history length if not provided (default: 3)
+  MONUMENT_CHAT_LENGTH     Default chat length if not provided (defaults to history length)
 
 EOF
     exit 1
@@ -63,6 +66,8 @@ cmd_context() {
     local namespace="$1"
     local agent_id="$2"
     local secret="${3:-$MONUMENT_AGENT_SECRET}"
+    local history_length="${4:-${MONUMENT_HISTORY_LENGTH:-3}}"
+    local chat_length="${MONUMENT_CHAT_LENGTH:-$history_length}"
 
     if [[ -z "$namespace" || -z "$agent_id" ]]; then
         echo -e "${RED}Error: namespace and agent-id are required${NC}"
@@ -74,9 +79,10 @@ cmd_context() {
         exit 1
     fi
 
-    echo -e "${BLUE}Fetching context for ${agent_id} in ${namespace}...${NC}"
+    echo -e "${BLUE}Fetching context for ${agent_id} in ${namespace} (history=${history_length}, chat=${chat_length})...${NC}"
 
-    response=$(curl -s -w "\n%{http_code}" -H "X-Agent-Secret: $secret" "${API_URL}/sim/${namespace}/agent/${agent_id}/context")
+    response=$(curl -s -w "\n%{http_code}" -H "X-Agent-Secret: $secret" \
+        "${API_URL}/sim/${namespace}/agent/${agent_id}/context?history_length=${history_length}&chat_length=${chat_length}")
     http_code=$(echo "$response" | tail -n1)
     body=$(echo "$response" | sed '$d')
 

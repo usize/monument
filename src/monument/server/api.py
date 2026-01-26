@@ -8,7 +8,7 @@ import json
 import time
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import FastAPI, HTTPException, Header, Query
 from pydantic import BaseModel
 
 from monument.server.db import db_manager
@@ -89,7 +89,15 @@ def authenticate_actor(conn, actor_id: str, provided_secret: str) -> Optional[di
     return actor_data
 
 
-def build_hud(conn, actor_id: str, namespace: str, supertick_id: int, context_hash: str) -> str:
+def build_hud(
+    conn,
+    actor_id: str,
+    namespace: str,
+    supertick_id: int,
+    context_hash: str,
+    history_length: int = 3,
+    chat_length: int = 3,
+) -> str:
     """
     Build the HUD (Heads-Up Display) for an agent.
     Returns formatted text with all necessary context.
@@ -193,28 +201,6 @@ def build_hud(conn, actor_id: str, namespace: str, supertick_id: int, context_ha
 
     hud.append("")
 
-    # All chat messages from the previous supertick (no limit)
-    prev_tick = max(0, supertick_id - 1)
-    cursor = conn.execute(
-        """
-        SELECT supertick_id, from_id, message FROM chat
-        WHERE supertick_id >= ?
-        ORDER BY supertick_id ASC, id ASC
-        """,
-        (prev_tick,)
-    )
-    chat_messages = cursor.fetchall()
-
-    hud.append("CHAT (from last supertick):")
-    if chat_messages:
-        for msg_tick, from_id, message in chat_messages:
-            tick_label = "current" if msg_tick == supertick_id else f"tick {msg_tick}"
-            hud.append(f"  [{tick_label}] {from_id}: {message}")
-    else:
-        hud.append("  No messages")
-
-    hud.append("")
-
     # Context from previous supertick (audit history)
     if supertick_id > 0:
         prev_tick = supertick_id - 1
@@ -243,6 +229,59 @@ def build_hud(conn, actor_id: str, namespace: str, supertick_id: int, context_ha
         else:
             hud.append("  No actions recorded")
         hud.append("")
+
+    # Per-agent history with LLM outputs for quick recall
+    cursor = conn.execute(
+        """
+        SELECT supertick_id, action_type, params_json, result_json, llm_output
+        FROM audit
+        WHERE actor_id = ?
+        ORDER BY supertick_id DESC, id DESC
+        LIMIT ?
+        """,
+        (actor_id, history_length)
+    )
+    recent_actions = cursor.fetchall()
+
+    hud.append(f"YOUR LAST {history_length} ACTIONS (most recent last):")
+    if recent_actions:
+        for row in reversed(recent_actions):
+            row_tick, action_type, params_json, result_json, llm_output = row
+            params = json.loads(params_json) if params_json else {}
+            params_str = params.get("params", "")
+            result = json.loads(result_json) if result_json else {}
+            outcome = result.get("outcome", "UNKNOWN")
+            reason = result.get("reason", "")
+            hud.append(f"  Tick {row_tick}: {action_type} {params_str} -> {outcome}: {reason}")
+            if llm_output:
+                hud.append("    LLM RESPONSE:")
+                for line in llm_output.strip().splitlines():
+                    hud.append(f"      {line}")
+    else:
+        hud.append("  No historical actions available")
+    hud.append("")
+
+    # Recent chat messages regardless of tick
+    cursor = conn.execute(
+        """
+        SELECT supertick_id, from_id, message
+        FROM chat
+        ORDER BY id DESC
+        LIMIT ?
+        """,
+        (chat_length,)
+    )
+    chat_messages = cursor.fetchall()
+
+    hud.append(f"RECENT CHAT (last {chat_length} messages, oldest first):")
+    if chat_messages:
+        for msg_tick, from_id, message in reversed(chat_messages):
+            tick_label = "current" if msg_tick == supertick_id else f"tick {msg_tick}"
+            hud.append(f"  [{tick_label}] {from_id}: {message}")
+    else:
+        hud.append("  No chat messages yet")
+
+    hud.append("")
 
     # TODO: Add recalled memories
 
@@ -333,7 +372,14 @@ async def root():
 async def get_agent_context(
     namespace: str,
     agent_id: str,
-    x_agent_secret: str = Header(..., description="Agent authentication secret")
+    x_agent_secret: str = Header(..., description="Agent authentication secret"),
+    history_length: int = Query(3, ge=1, le=20, description="Number of previous actions + LLM responses to include"),
+    chat_length: Optional[int] = Query(
+        None,
+        ge=1,
+        le=50,
+        description="Number of chat messages to include in HUD. Defaults to history_length if omitted."
+    )
 ):
     """
     Get the current context (HUD) for an agent.
@@ -365,7 +411,17 @@ async def get_agent_context(
         context_hash = compute_context_hash(namespace, supertick_id, phase, goal)
 
         # Build HUD
-        hud = build_hud(conn, agent_id, namespace, supertick_id, context_hash)
+        chat_length_value = chat_length if chat_length is not None else history_length
+
+        hud = build_hud(
+            conn,
+            agent_id,
+            namespace,
+            supertick_id,
+            context_hash,
+            history_length=history_length,
+            chat_length=chat_length_value
+        )
         if hud is None:
             conn.close()
             raise HTTPException(status_code=404, detail=f"Agent {agent_id} not found")

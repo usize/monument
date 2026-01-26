@@ -17,6 +17,8 @@ MONUMENT_API_URL="${MONUMENT_API_URL:-http://localhost:8000}"
 LLM_API_URL="${LLM_API_URL:-http://localhost:8080/v1}"
 LLM_MODEL="${LLM_MODEL:-unsloth/GLM-4.5-Air-GGUF:IQ4_NL}"
 LLM_TEMPERATURE="${LLM_TEMPERATURE:-0.7}"
+HISTORY_LENGTH="${MONUMENT_HISTORY_LENGTH:-3}"
+CHAT_LENGTH="${MONUMENT_CHAT_LENGTH:-}"
 
 # ============================================================================
 # Usage
@@ -33,6 +35,8 @@ Options:
   -n, --namespace <ns>      Simulation namespace
   -a, --agent <id>          Agent ID
   -s, --secret <secret>     Agent secret
+  --history-length <n>      Number of past actions (and chat messages) to include (default: 3)
+  --chat-length <n>         Override number of chat messages (default: history length)
   -m, --model <model>       LLM model name (default: \$LLM_MODEL)
   -u, --llm-url <url>       LLM API URL (default: \$LLM_API_URL)
   --api-url <url>           Monument API URL (default: \$MONUMENT_API_URL)
@@ -79,6 +83,8 @@ while [[ $# -gt 0 ]]; do
         -n|--namespace) NAMESPACE="$2"; shift 2 ;;
         -a|--agent) AGENT_ID="$2"; shift 2 ;;
         -s|--secret) SECRET="$2"; shift 2 ;;
+        --history-length) HISTORY_LENGTH="$2"; shift 2 ;;
+        --chat-length) CHAT_LENGTH="$2"; shift 2 ;;
         -m|--model) LLM_MODEL="$2"; shift 2 ;;
         -u|--llm-url) LLM_API_URL="$2"; shift 2 ;;
         --api-url) MONUMENT_API_URL="$2"; shift 2 ;;
@@ -93,6 +99,8 @@ if [[ -z "$NAMESPACE" || -z "$AGENT_ID" || -z "$SECRET" ]]; then
     echo "Error: namespace, agent-id, and secret are required"
     usage
 fi
+
+CHAT_LENGTH="${CHAT_LENGTH:-$HISTORY_LENGTH}"
 
 # ============================================================================
 # Helpers
@@ -123,13 +131,13 @@ error_permanent() {
 # Main
 # ============================================================================
 
-log "Starting turn for $AGENT_ID in $NAMESPACE"
+log "Starting turn for $AGENT_ID in $NAMESPACE (history=$HISTORY_LENGTH, chat=$CHAT_LENGTH)"
 log "LLM: $LLM_API_URL model=$LLM_MODEL"
 
 # 1. Fetch context from Monument API
 log "Fetching context..."
-CONTEXT_RESPONSE=$(curl -s -w "\n%{http_code}" -H "X-Agent-Secret: $SECRET" \
-    "${MONUMENT_API_URL}/sim/${NAMESPACE}/agent/${AGENT_ID}/context")
+CONTEXT_URL="${MONUMENT_API_URL}/sim/${NAMESPACE}/agent/${AGENT_ID}/context?history_length=${HISTORY_LENGTH}&chat_length=${CHAT_LENGTH}"
+CONTEXT_RESPONSE=$(curl -s -w "\n%{http_code}" -H "X-Agent-Secret: $SECRET" "$CONTEXT_URL")
 
 CONTEXT_HTTP_CODE=$(echo "$CONTEXT_RESPONSE" | tail -1)
 CONTEXT_BODY=$(echo "$CONTEXT_RESPONSE" | sed '$d')
