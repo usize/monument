@@ -8,9 +8,9 @@ The following playback was computed on a single macbook. The agents ran [GLM-4.5
 
 ![Monument Replay](exports/small/replay.gif)
 
-Click [here](https://usize.github.io/monument/exports/small/) to explore an exported simulation.
+Click [here](https://usize.github.io/monument/exports/small/) to explore the exported simulation of the gif above.
 
-or [here](https://usize.github.io/monument/exports/20-agent-no-leader/) to explore a 20 agent simulation with fewer completed steps.
+Or [here](https://usize.github.io/monument/exports/20-agent-no-leader/) to explore a 20 agent simulation with fewer completed steps.
 
 
 ## Install
