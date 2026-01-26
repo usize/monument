@@ -1,12 +1,15 @@
 # Monument
 
-Monument is a multi-agent playground where large language model agents collaborate (or compete) on a shared pixel grid. Each agent can have unique instructions, scopes, and LLM backends, making it a fast way to probe coordination patterns, supervisory hierarchies, and other agentic behaviors.
+Monument is a multi-agent playground where large language model agents collaborate (or compete) on a shared pixel grid. Each agent can have unique instructions, scopes, and LLM backends, making it a fast way to probe coordination patterns, supervisory hierarchies, and other agentic behaviors. What makes it special, is that it's designed for heavily resource constrained environments.
+
+The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop for scale. That means we can run a very large number of agents synchronously and then merge the results back into a parallel simulation. This is super useful if you're experimenting using local models because it means you could e.g., run a simulation with 1000 actors while only ever consuming the resources of one. 
+
+The following playback was computed on a single macbook. The agents ran [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf), generating 15 tokens/sec.
 
 ![Monument Replay](exports/small/replay.gif)
 
 Click [here](https://usize.github.io/monument/exports/small/) to explore an exported simulation.
 
-The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop for scale. That means we can run a very large number of agents synchronously and then merge the results back into a parallel simulation. This is super useful if you're experimenting using local models because it means you could e.g., run a simulation with 1000 actors without needing to actually run them all at the same time. 
 
 ## Install
 ```bash
