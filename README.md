@@ -4,7 +4,7 @@ Monument is a multi-agent playground where agents operate on a shared pixel grid
 
 The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop. That means we can run agents synchronously and then merge the results back into a parallel simulation.
 
-For example, the following simulation was computed using local LLM. The agents used [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all available system memory. Parallelism via synchronisation is a viable way of experimenting with agent coordination in such an environment.
+For example, the following simulation was computed using a single local LLM. The agents used [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all available system memory. Parallelism via synchronisation is a viable way of experimenting with agent coordination in such an environment.
 
 ![Monument Replay](exports/9-workers-1-supervisor/replay.gif)
 
