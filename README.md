@@ -6,7 +6,7 @@ Monument is a multi-agent playground where large language model agents collabora
 
 Click [here](https://usize.github.io/monument/exports/small/) to explore an exported simulation.
 
-The simulation engine uses a BSP loop for scale. That means we can run a very large number of agents synchronously and then merge the results back into a parallel simulation. This is super useful if you're experimenting using local models because it means you could e.g., run a simulation with 1000 actors without needing to actually run them all at the same time. 
+The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop for scale. That means we can run a very large number of agents synchronously and then merge the results back into a parallel simulation. This is super useful if you're experimenting using local models because it means you could e.g., run a simulation with 1000 actors without needing to actually run them all at the same time. 
 
 ## Install
 ```bash
