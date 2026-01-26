@@ -118,6 +118,20 @@ def build_hud(
     x, y, facing, scopes_json, custom_instructions = actor_row
     scopes = json.loads(scopes_json)
 
+    # Get world bounds early for HUD usage
+    width = int(meta.get('width', 64))
+    height = int(meta.get('height', 64))
+
+    # Get all tiles (full map visibility, no viewport restriction)
+    cursor = conn.execute(
+        """
+        SELECT x, y, color FROM tiles
+        ORDER BY y, x
+        """
+    )
+    visible_tiles = cursor.fetchall()
+    tile_map = {(tx, ty): color for tx, ty, color in visible_tiles}
+
     # Build HUD sections
     hud = []
     hud.append("=" * 60)
@@ -131,6 +145,28 @@ def build_hud(
     hud.append(f"FACING: {facing}")
     hud.append(f"PHASE: {meta.get('phase', 'UNKNOWN')}")
     hud.append("")
+    hud.append("COORD SYSTEM:")
+    hud.append("  Origin (0,0) is top-left. +X = east/right. +Y = south/down.")
+    hud.append("  MOVE N decreases Y. MOVE S increases Y. MOVE E increases X. MOVE W decreases X.")
+    hud.append("")
+
+    # Simple local compass visualization
+    def format_direction(dx: int, dy: int, direction: str) -> str:
+        target_x = x + dx
+        target_y = y + dy
+        if not (0 <= target_x < width and 0 <= target_y < height):
+            return f"[{direction}] (wall)"
+        tile_color = tile_map.get((target_x, target_y))
+        color_info = f" {tile_color}" if tile_color else ""
+        return f"[{direction}] ({target_x},{target_y}){color_info}"
+
+    hud.append("LOCAL COMPASS (you are @):")
+    hud.append(f"        {format_direction(0, -1, 'N')}")
+    hud.append(
+        f"{format_direction(-1, 0, 'W')}    @ ({x},{y}) {tile_map.get((x, y), '')}    {format_direction(1, 0, 'E')}"
+    )
+    hud.append(f"        {format_direction(0, 1, 'S')}")
+    hud.append("")
 
     # Custom instructions (agent's identity and objectives)
     if custom_instructions:
@@ -142,19 +178,6 @@ def build_hud(
 
     hud.append(f"WORLD GOAL: {meta.get('goal', 'None')}")
     hud.append("")
-
-    # Get world bounds
-    width = int(meta.get('width', 64))
-    height = int(meta.get('height', 64))
-
-    # Get all tiles (full map visibility, no viewport restriction)
-    cursor = conn.execute(
-        """
-        SELECT x, y, color FROM tiles
-        ORDER BY y, x
-        """
-    )
-    visible_tiles = cursor.fetchall()
 
     # Get all actors
     cursor = conn.execute(
