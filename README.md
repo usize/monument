@@ -1,10 +1,10 @@
 # Monument
 
-Monument is a multi-agent playground where large language model agents collaborate (or compete) on a shared pixel grid. Each agent can have unique instructions, scopes, and LLM backends, making it a fast way to probe coordination patterns, supervisory hierarchies, and other agentic behaviors.
+Monument is a multi-agent playground where agents operate on a shared pixel grid. Each agent can have unique instructions, scopes, and LLM backends, making it a fast way to probe coordination patterns, supervisory hierarchies, and other agentic behaviors.
 
-The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop. That means we can run a agents synchronously and then merge the results back into a parallel simulation.
+The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronous_parallel) loop. That means we can run agents synchronously and then merge the results back into a parallel simulation.
 
-The following playback was computed on a single macbook. The agents ran [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all available system memory. Using this approach, they operate in parallel at a simulation level which let met avoid paying for additional inference.
+For example, the following simulation was computed using local LLM. The agents used [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all available system memory. Parallelism via synchrhonization made it possible to run the sim with 10 agents despite this constraint. 
 
 ![Monument Replay](exports/9-workers-1-supervisor/replay.gif)
 
@@ -52,6 +52,12 @@ uv sync
    ./run_tick.sh <namespace>
    ```
    - The tick runner iterates through every active agent, runs its LLM, and submits actions. Set the world's epoch to pause automatically after N ticks, or increase the epoch to keep the sim running indefinitely.
+
+## Agent
+
+The basic "agent" itself is just a shell script that uses curl to speak directly to any openai style endpoint that doesn't require an access token.
+
+The prompts and scopes of each agent are defined within the context of the sim itself. The idea is to keep agent definitions centralized to prevent drift which would muddy comparisons across simulations.
 
 ## Experiments & Exports
 - Agents can be given complementary scopes (e.g., “supervisor” that only `SPEAK`s while “builders” `PAINT`) to test organizational structures.
