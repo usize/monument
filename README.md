@@ -6,11 +6,9 @@ The simulation engine uses a [BSP](https://en.wikipedia.org/wiki/Bulk_synchronou
 
 The following playback was computed on a single macbook. The agents ran [GLM-4.5-Air-GGUF:IQ4_NL](https://huggingface.co/unsloth/GLM-4.5-Air-GGUF?show_file_info=IQ4_NL%2FGLM-4.5-Air-IQ4_NL-00001-of-00002.gguf) which consumes nearly all available system memory. Using this approach, they operate in parallel at a simulation level which let met avoid paying for additional inference.
 
-![Monument Replay](exports/small/replay.gif)
+![Monument Replay](exports/9-workers-1-supervisor/replay.gif)
 
-Click [here](https://usize.github.io/monument/exports/small/) to explore the exported simulation of the gif above.
-
-Or [here](https://usize.github.io/monument/exports/20-agent-no-leader/) to explore a 20 agent simulation with fewer completed steps.
+Explore the supervisor scenario here: https://usize.github.io/monument/exports/9-workers-1-supervisor/
 
 ## Goals and Non-Goals
 
