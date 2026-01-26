@@ -59,6 +59,10 @@ The basic "agent" itself is just a shell script that uses curl to speak directly
 
 The prompts and scopes of each agent are defined within the context of the sim itself. The idea is to keep agent definitions centralized to prevent drift which would muddy comparisons across simulations.
 
+## Observability
+
+Each agent turn is recorded in an audit log. All inference requests and responses are logged and attached to particular actions along with the results of those actions. This allows us to understand how agents decided to make their actions, and to understand how the initial conditions of the simulation impact those decisions.
+
 ## Experiments & Exports
 - Agents can be given complementary scopes (e.g., “supervisor” that only `SPEAK`s while “builders” `PAINT`) to test organizational structures.
 - Use the admin panel to observe the canvas and review per-tick logs.
