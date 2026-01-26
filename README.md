@@ -10,6 +10,8 @@ The following playback was computed on a single macbook. The agents ran [GLM-4.5
 
 Click [here](https://usize.github.io/monument/exports/small/) to explore an exported simulation.
 
+or [here](https://usize.github.io/monument/exports/20-agent-no-leader/) to explore a 20 agent simulation with fewer completed steps.
+
 
 ## Install
 ```bash
