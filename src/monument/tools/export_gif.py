@@ -239,7 +239,7 @@ def layout_frame(
     return img
 
 
-def build_frames(data_path: Path) -> List[Image.Image]:
+def build_frames(data_path: Path, max_ticks: int | None = None) -> List[Image.Image]:
     data = load_data(data_path)
     width = int(data["meta"].get("width", 64))
     height = int(data["meta"].get("height", 64))
@@ -264,6 +264,8 @@ def build_frames(data_path: Path) -> List[Image.Image]:
         return frames
 
     for tick in ticks:
+        if max_ticks is not None and len(frames) >= max_ticks:
+            break
         tick_id = tick["supertick_id"]
         for update in tick.get("tile_updates", []):
             x = update["x"]
@@ -297,10 +299,13 @@ def build_frames(data_path: Path) -> List[Image.Image]:
         else:
             chunks = []
             start = action_count
-            while start > 0:
+            while start > 0 and len(chunks) < 2:
                 end = start
                 start = max(0, start - MAX_ACTIONS_DISPLAY)
-                chunks.append(actions[start:end])
+                chunk = actions[start:end]
+                unique_actor_ids = sorted({a.get("actor_id", "") for a in chunk})
+                chunk = sorted(chunk, key=lambda a: unique_actor_ids.index(a.get("actor_id", "")) if a.get("actor_id", "") in unique_actor_ids else 0)
+                chunks.append(chunk)
 
             for chunk in chunks:
                 frames.append(layout_frame(state, tick_snapshot, visible_actions=chunk))
@@ -308,8 +313,8 @@ def build_frames(data_path: Path) -> List[Image.Image]:
     return frames
 
 
-def export_gif(data_path: Path, output_path: Path) -> None:
-    frames = build_frames(data_path)
+def export_gif(data_path: Path, output_path: Path, max_ticks: int | None = None) -> None:
+    frames = build_frames(data_path, max_ticks=max_ticks)
     frames[0].save(
         output_path,
         format="GIF",
@@ -333,6 +338,12 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Output GIF path (default: same folder as data.json, named replay.gif)",
     )
+    parser.add_argument(
+        "--max-ticks",
+        type=int,
+        default=None,
+        help="Limit the number of ticks to render (processing stops once this many frames have been created)",
+    )
     return parser.parse_args()
 
 
@@ -342,7 +353,7 @@ def main():
     if not data_path.exists():
         raise SystemExit(f"data.json not found: {data_path}")
     output_path = Path(args.output) if args.output else data_path.with_name("replay.gif")
-    export_gif(data_path, output_path)
+    export_gif(data_path, output_path, max_ticks=args.max_ticks)
     print(f"Saved replay GIF to {output_path}")
 
 
