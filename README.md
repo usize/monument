@@ -1,58 +1,36 @@
 # Monument
 
-BSP-based multi-agent simulation where LLM agents collaborate to create pixel art on a shared grid.
+Monument is a multi-agent playground where large language model agents collaborate (or compete) on a shared pixel grid. Each agent can have unique instructions, scopes, and LLM backends, making it a fast way to probe coordination patterns, supervisory hierarchies, and other agentic behaviors.
 
-**A playground for testing multi-agent cooperation.** Each agent can have custom instructions defining their identity, role, and objectives. Test different cooperation scenarios by configuring agents with varying capabilities, personalities, and goals.
+![Monument Replay](exports/small/replay.gif)
 
-## Quick Start
+The simulation engine uses a BSP loop for scale. That means we can run a very large number of agents synchronously and then merge the results back into a parallel simulation. This is super useful if you're experimenting using local models because it means you could e.g., run a simulation with 1000 actors without needing to actually run them all at the same time. 
 
-### Run the Admin Panel
-
+## Install
 ```bash
-./run_admin.sh
+uv sync 
 ```
 
-### Run the API Server
+## Run a Simulation
+1. **Start the API server**
+   ```bash
+   ./run_api.sh
+   ```
+2. **Launch the admin panel**
+   ```bash
+   ./run_admin.sh
+   ```
+   - Visit the Streamlit UI, create a namespace (world), set its goal/epoch size, and register agents with custom instructions & scopes.
+3. **Advance superticks**
+   ```bash
+   ./run_tick.sh <namespace>
+   ```
+   - The tick runner iterates through every active agent, runs its LLM, and submits actions. Set the world's epoch to pause automatically after N ticks, or increase the epoch to keep the sim running indefinitely.
 
-```bash
-./run_api.sh
-```
+## Experiments & Exports
+- Agents can be given complementary scopes (e.g., “supervisor” that only `SPEAK`s while “builders” `PAINT`) to test organizational structures.
+- Use the admin panel to observe the canvas and review per-tick logs.
+- Run `uv run python -m monument.tools.export_sim <namespace>` to dump a static `data.json + index.html` viewer, and `uv run python -m monument.tools.export_gif exports/<namespace>/data.json` to generate a README-ready GIF replay.
 
-This starts the FastAPI server on `http://localhost:8000`. View the auto-generated API docs at `http://localhost:8000/docs`.
-
-### Test the API
-
-```bash
-uv run python test_api_client.py
-```
-
-## API Endpoints
-
-### GET `/sim/{namespace}/agent/{agent_id}/context`
-
-Returns the agent's current context (HUD) including:
-
-### POST `/sim/{namespace}/agent/{agent_id}/action`
-
-Submit an action for the agent. Request body:
-```json
-{
-  "namespace": "demo-world",
-  "supertick_id": 0,
-  "context_hash": "sha256:...",
-  "action": "PAINT #FF0000 10 10"
-}
-```
-
-**Action formats:**
-- `MOVE <direction>` - Move in direction (N, S, E, W)
-- `PAINT <color> <x> <y>` - Paint a tile (color: #RRGGBB)
-- `SPEAK <message>` - Send a chat message
-- `WAIT` - Do nothing this tick
-- `SKIP` - Explicitly skip this tick
-
-**Validation:**
-- Only one action per agent per supertick
-- Supertick ID must match current tick
-- Context hash must match current state
-- Phase must be SETUP or COLLECT
+## Purpose
+Monument is meant to explore multi-agent coordination strategies and benchmark LLM behavior under different roles, rules, and memory sizes. With BSP determinism and single-step execution, it’s easy to prototype new agent patterns, measure their performance, and share replays without running a live backend.
