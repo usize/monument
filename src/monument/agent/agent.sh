@@ -16,6 +16,7 @@ set -e
 MONUMENT_API_URL="${MONUMENT_API_URL:-http://localhost:8000}"
 LLM_API_URL="${LLM_API_URL:-http://localhost:8080/v1}"
 LLM_MODEL="${LLM_MODEL:-unsloth/GLM-4.5-Air-GGUF:IQ4_NL}"
+LLM_API_KEY="${LLM_API_KEY:-}"  # Optional, used for authenticated APIs
 LLM_TEMPERATURE="${LLM_TEMPERATURE:-0.7}"
 HISTORY_LENGTH="${MONUMENT_HISTORY_LENGTH:-20}"
 CHAT_LENGTH="${MONUMENT_CHAT_LENGTH:-}"
@@ -39,6 +40,7 @@ Options:
   --chat-length <n>         Override number of chat messages (default: history length)
   -m, --model <model>       LLM model name (default: \$LLM_MODEL)
   -u, --llm-url <url>       LLM API URL (default: \$LLM_API_URL)
+  -k, --llm-api-key <key>   LLM API key for authenticated APIs
   --api-url <url>           Monument API URL (default: \$MONUMENT_API_URL)
   -v, --verbose             Verbose output
   -h, --help                Show this help
@@ -47,10 +49,14 @@ Environment Variables:
   MONUMENT_API_URL          Monument API URL (default: http://localhost:8000)
   LLM_API_URL               LLM API URL (default: http://localhost:8080/v1)
   LLM_MODEL                 LLM model name
+  LLM_API_KEY               LLM API key (for authenticated APIs like OpenAI, Anthropic)
   LLM_TEMPERATURE           LLM temperature (default: 0.7)
   MONUMENT_NAMESPACE        Simulation namespace
   MONUMENT_AGENT_NAME       Agent ID
   MONUMENT_AGENT_SECRET     Agent secret
+
+Note: Per-agent LLM settings (configured in the simulation YAML) override
+environment variables and command-line options.
 
 Examples:
   $0 my-world agent_0 abc123
@@ -87,6 +93,7 @@ while [[ $# -gt 0 ]]; do
         --chat-length) CHAT_LENGTH="$2"; shift 2 ;;
         -m|--model) LLM_MODEL="$2"; shift 2 ;;
         -u|--llm-url) LLM_API_URL="$2"; shift 2 ;;
+        -k|--llm-api-key) LLM_API_KEY="$2"; shift 2 ;;
         --api-url) MONUMENT_API_URL="$2"; shift 2 ;;
         -v|--verbose) VERBOSE=true; shift ;;
         -h|--help) usage ;;
@@ -132,7 +139,7 @@ error_permanent() {
 # ============================================================================
 
 log "Starting turn for $AGENT_ID in $NAMESPACE (history=$HISTORY_LENGTH, chat=$CHAT_LENGTH)"
-log "LLM: $LLM_API_URL model=$LLM_MODEL"
+log "LLM defaults: $LLM_API_URL model=$LLM_MODEL api_key=${LLM_API_KEY:+(set)}"
 
 # 1. Fetch context from Monument API
 log "Fetching context..."
@@ -154,6 +161,26 @@ SUPERTICK=$(echo "$CONTEXT_BODY" | jq -r '.supertick_id')
 CONTEXT_HASH=$(echo "$CONTEXT_BODY" | jq -r '.context_hash')
 HUD=$(echo "$CONTEXT_BODY" | jq -r '.hud')
 
+# Extract per-agent LLM config (overrides env vars if set)
+AGENT_LLM_MODEL=$(echo "$CONTEXT_BODY" | jq -r '.llm_config.model // empty')
+AGENT_LLM_BASE_URL=$(echo "$CONTEXT_BODY" | jq -r '.llm_config.base_url // empty')
+AGENT_LLM_API_KEY=$(echo "$CONTEXT_BODY" | jq -r '.llm_config.api_key // empty')
+
+# Apply per-agent overrides (non-empty values take precedence)
+if [[ -n "$AGENT_LLM_MODEL" ]]; then
+    log "Using per-agent LLM model: $AGENT_LLM_MODEL"
+    LLM_MODEL="$AGENT_LLM_MODEL"
+fi
+if [[ -n "$AGENT_LLM_BASE_URL" ]]; then
+    log "Using per-agent LLM base URL: $AGENT_LLM_BASE_URL"
+    LLM_API_URL="$AGENT_LLM_BASE_URL"
+fi
+if [[ -n "$AGENT_LLM_API_KEY" ]]; then
+    log "Using per-agent LLM API key"
+    LLM_API_KEY="$AGENT_LLM_API_KEY"
+fi
+
+log "Final LLM config: $LLM_API_URL model=$LLM_MODEL api_key=${LLM_API_KEY:+(set)}"
 log "Supertick: $SUPERTICK, Hash: $CONTEXT_HASH"
 
 # 2. Build prompt for LLM
@@ -197,9 +224,14 @@ LLM_PAYLOAD=$(jq -n \
         ]
     }')
 
-LLM_RESPONSE=$(curl -s -X POST "${LLM_API_URL}/chat/completions" \
-    -H "Content-Type: application/json" \
-    -d "$LLM_PAYLOAD")
+# Build curl command with optional Authorization header
+LLM_CURL_ARGS=(-s -X POST "${LLM_API_URL}/chat/completions" -H "Content-Type: application/json")
+if [[ -n "$LLM_API_KEY" ]]; then
+    LLM_CURL_ARGS+=(-H "Authorization: Bearer $LLM_API_KEY")
+fi
+LLM_CURL_ARGS+=(-d "$LLM_PAYLOAD")
+
+LLM_RESPONSE=$(curl "${LLM_CURL_ARGS[@]}")
 
 if [[ -z "$LLM_RESPONSE" ]]; then
     error_transient "Empty response from LLM API (is the server running?)"
