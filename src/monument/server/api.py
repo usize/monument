@@ -31,12 +31,19 @@ class ActionSubmission(BaseModel):
     llm_output: Optional[str] = None  # Full response from LLM (for traceability)
 
 
+class LLMConfig(BaseModel):
+    model: str
+    base_url: str
+    api_key: str
+
+
 class ContextResponse(BaseModel):
     namespace: str
     supertick_id: int
     context_hash: str
     phase: str
     hud: str
+    llm_config: Optional[LLMConfig] = None
 
 
 class ActionResponse(BaseModel):
@@ -65,7 +72,7 @@ def authenticate_actor(conn, actor_id: str, provided_secret: str) -> Optional[di
         Actor data dict if authentication successful, None otherwise
     """
     cursor = conn.execute(
-        "SELECT id, secret, x, y, facing, scopes FROM actors WHERE id = ? AND eliminated_at IS NULL",
+        "SELECT id, secret, x, y, facing, scopes, llm_model, llm_base_url, llm_api_key FROM actors WHERE id = ? AND eliminated_at IS NULL",
         (actor_id,)
     )
     row = cursor.fetchone()
@@ -79,7 +86,10 @@ def authenticate_actor(conn, actor_id: str, provided_secret: str) -> Optional[di
         "x": row[2],
         "y": row[3],
         "facing": row[4],
-        "scopes": json.loads(row[5])
+        "scopes": json.loads(row[5]),
+        "llm_model": row[6] or "",
+        "llm_base_url": row[7] or "",
+        "llm_api_key": row[8] or "",
     }
 
     # Verify secret
@@ -475,12 +485,22 @@ async def get_agent_context(
 
         conn.close()
 
+        # Build LLM config if any values are set
+        llm_config = None
+        if actor_data["llm_model"] or actor_data["llm_base_url"] or actor_data["llm_api_key"]:
+            llm_config = LLMConfig(
+                model=actor_data["llm_model"],
+                base_url=actor_data["llm_base_url"],
+                api_key=actor_data["llm_api_key"],
+            )
+
         return ContextResponse(
             namespace=namespace,
             supertick_id=supertick_id,
             context_hash=context_hash,
             phase=phase,
-            hud=hud
+            hud=hud,
+            llm_config=llm_config
         )
 
     except db_manager.NamespaceError as e:

@@ -513,13 +513,13 @@ elif page == "Manage World":
                 st.subheader("Register Agents")
 
                 # Show current actors
-                cursor = conn.execute("SELECT id, secret, x, y, facing, scopes, custom_instructions, llm_model FROM actors WHERE eliminated_at IS NULL")
+                cursor = conn.execute("SELECT id, secret, x, y, facing, scopes, custom_instructions, llm_model, llm_base_url, llm_api_key FROM actors WHERE eliminated_at IS NULL")
                 actors = cursor.fetchall()
 
                 if actors:
                     st.write(f"**Registered Agents ({len(actors)}):**")
                     for actor in actors:
-                        actor_id, secret, x, y, facing, scopes_json, custom_instructions, llm_model = actor
+                        actor_id, secret, x, y, facing, scopes_json, custom_instructions, llm_model, llm_base_url, llm_api_key = actor
 
                         with st.expander(f"🤖 {actor_id} at ({x}, {y})"):
                             scopes = json.loads(scopes_json)
@@ -534,10 +534,26 @@ elif page == "Manage World":
                                 if st.button("📋 Copy Secret", key=f"copy_{actor_id}"):
                                     st.code(secret, language=None)
 
+                            # LLM Configuration
+                            st.write("**LLM Configuration:**")
                             llm_model_input = st.text_input(
-                                "LLM Model (optional override)",
+                                "LLM Model",
                                 value=llm_model or "",
-                                key=f"llm_model_{actor_id}"
+                                key=f"llm_model_{actor_id}",
+                                help="Model identifier (e.g., gpt-4, claude-3-opus)"
+                            )
+                            llm_base_url_input = st.text_input(
+                                "LLM Base URL",
+                                value=llm_base_url or "",
+                                key=f"llm_base_url_{actor_id}",
+                                help="API base URL (leave empty for default)"
+                            )
+                            llm_api_key_input = st.text_input(
+                                "LLM API Key",
+                                value=llm_api_key or "",
+                                key=f"llm_api_key_{actor_id}",
+                                type="password",
+                                help="API key (leave empty to use environment variable)"
                             )
 
                             # Custom instructions editor
@@ -576,9 +592,15 @@ elif page == "Manage World":
                                     st.success(f"Updated scopes for {actor_id}")
                                     st.rerun()
 
-                            if st.button("💾 Save LLM Model", key=f"save_llm_{actor_id}"):
-                                db_manager.update_actor_llm_model(conn, actor_id, llm_model_input.strip())
-                                st.success(f"Updated LLM model for {actor_id}")
+                            if st.button("💾 Save LLM Config", key=f"save_llm_{actor_id}"):
+                                db_manager.update_actor_llm_config(
+                                    conn,
+                                    actor_id,
+                                    llm_model=llm_model_input.strip(),
+                                    llm_base_url=llm_base_url_input.strip(),
+                                    llm_api_key=llm_api_key_input.strip()
+                                )
+                                st.success(f"Updated LLM config for {actor_id}")
                                 st.rerun()
 
                             col_regen, col_delete = st.columns(2)
@@ -632,10 +654,22 @@ elif page == "Manage World":
                         help="These instructions will be applied to all registered agents. Leave empty for no instructions. You can edit individual agents later."
                     )
 
+                    st.write("**LLM Configuration (optional):**")
                     default_llm_model = st.text_input(
-                        "Default LLM Model (optional, applies to these agents)",
+                        "LLM Model",
                         value="",
-                        help="Set a model identifier per agent (e.g., local model path or API model). Leave blank to use agent defaults."
+                        help="Model identifier (e.g., gpt-4, claude-3-opus)"
+                    )
+                    default_llm_base_url = st.text_input(
+                        "LLM Base URL",
+                        value="",
+                        help="API base URL (leave empty for default)"
+                    )
+                    default_llm_api_key = st.text_input(
+                        "LLM API Key",
+                        value="",
+                        type="password",
+                        help="API key (leave empty to use environment variable)"
                     )
 
                     register_button = st.form_submit_button("Register Agents (Grid Layout)")
@@ -674,7 +708,9 @@ elif page == "Manage World":
                                         scopes=default_scopes,
                                         secret=agent_secret,
                                         custom_instructions=default_instructions,
-                                        llm_model=default_llm_model.strip()
+                                        llm_model=default_llm_model.strip(),
+                                        llm_base_url=default_llm_base_url.strip(),
+                                        llm_api_key=default_llm_api_key.strip()
                                     )
                                     registered_secrets.append((agent_id, secret))
 
