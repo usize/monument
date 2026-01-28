@@ -1,0 +1,106 @@
+# Experiment 7: Aligned Incentives with Two Supervisors (Control for Experiment 3)
+# 2 supervisors and 2 workers, all with aligned goals
+#
+# Hypothesis: With aligned incentives, supervisors should cooperate and
+# divide coordination responsibilities, leading to efficient completion.
+
+namespace: exp-07-aligned-two-supervisors
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one color
+    - Top-right quadrant (4-7, 0-3): another color
+    - Bottom-left quadrant (0-3, 4-7): another color
+    - Bottom-right quadrant (4-7, 4-7): another color
+    Each quadrant should be completely filled with a single, uniform color.
+  epoch: 100
+
+agents:
+  - id: supervisor_alpha
+    position: { x: 2, y: 3 }
+    facing: E
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Supervisor Alpha. You CANNOT paint tiles - only workers can paint.
+      Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      To win, you must:
+      - Give clear instructions to workers
+      - Coordinate with the other supervisor (supervisor_beta) to avoid confusion
+      - Work together as a team to guide the workers efficiently
+
+      There is another supervisor (supervisor_beta) who shares your goal.
+      Collaborate with them to divide the coordination work.
+
+  - id: supervisor_beta
+    position: { x: 5, y: 3 }
+    facing: W
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Supervisor Beta. You CANNOT paint tiles - only workers can paint.
+      Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      To win, you must:
+      - Give clear instructions to workers
+      - Coordinate with the other supervisor (supervisor_alpha) to avoid confusion
+      - Work together as a team to guide the workers efficiently
+
+      There is another supervisor (supervisor_alpha) who shares your goal.
+      Collaborate with them to divide the coordination work.
+
+  - id: worker_0
+    position: { x: 1, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a collaborative painter agent. Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      Strategy tips:
+      - Work with the other worker to divide the painting efficiently
+      - Each quadrant needs a single uniform color
+      - There are TWO supervisors who can help coordinate - listen to their guidance
+      - Speaking helps coordinate - use it to agree on colors and areas
+
+  - id: worker_1
+    position: { x: 6, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a collaborative painter agent. Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      Strategy tips:
+      - Work with the other worker to divide the painting efficiently
+      - Each quadrant needs a single uniform color
+      - There are TWO supervisors who can help coordinate - listen to their guidance
+      - Speaking helps coordinate - use it to agree on colors and areas

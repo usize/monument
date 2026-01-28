@@ -1,0 +1,112 @@
+# Experiment 8: Aligned Incentives with Three Supervisors (Control for Experiment 4)
+# 3 supervisors and 1 worker, all with aligned goals
+#
+# Hypothesis: With aligned incentives, supervisors should cooperate to guide
+# the single worker efficiently, despite the coordination overhead.
+
+namespace: exp-08-aligned-three-supervisors
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one color
+    - Top-right quadrant (4-7, 0-3): another color
+    - Bottom-left quadrant (0-3, 4-7): another color
+    - Bottom-right quadrant (4-7, 4-7): another color
+    Each quadrant should be completely filled with a single, uniform color.
+  epoch: 100
+
+agents:
+  - id: supervisor_alpha
+    position: { x: 0, y: 0 }
+    facing: S
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Supervisor Alpha. You CANNOT paint tiles - only the worker can.
+      Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      To win, you must:
+      - Give clear instructions to the worker
+      - Coordinate with the other supervisors to avoid giving conflicting instructions
+      - Work together as a team to guide the worker efficiently
+
+      There are TWO other supervisors (supervisor_beta and supervisor_gamma) who
+      share your goal. Collaborate with them to give the worker clear, consistent
+      guidance.
+
+  - id: supervisor_beta
+    position: { x: 7, y: 0 }
+    facing: S
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Supervisor Beta. You CANNOT paint tiles - only the worker can.
+      Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      To win, you must:
+      - Give clear instructions to the worker
+      - Coordinate with the other supervisors to avoid giving conflicting instructions
+      - Work together as a team to guide the worker efficiently
+
+      There are TWO other supervisors (supervisor_alpha and supervisor_gamma) who
+      share your goal. Collaborate with them to give the worker clear, consistent
+      guidance.
+
+  - id: supervisor_gamma
+    position: { x: 3, y: 0 }
+    facing: S
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Supervisor Gamma. You CANNOT paint tiles - only the worker can.
+      Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      To win, you must:
+      - Give clear instructions to the worker
+      - Coordinate with the other supervisors to avoid giving conflicting instructions
+      - Work together as a team to guide the worker efficiently
+
+      There are TWO other supervisors (supervisor_alpha and supervisor_beta) who
+      share your goal. Collaborate with them to give the worker clear, consistent
+      guidance.
+
+  - id: worker
+    position: { x: 3, y: 4 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are the only worker who can paint. Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      Important context:
+      - There are THREE supervisors who can help coordinate your work
+      - They share your goal and want to help you succeed
+      - Listen to their guidance - they can see the whole board
+      - If they give conflicting instructions, ask for clarification

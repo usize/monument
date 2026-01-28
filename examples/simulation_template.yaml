@@ -1,0 +1,83 @@
+# Monument Simulation Configuration Template
+# Usage: uv run python -m monument.tools.create_sim simulation.yaml
+#
+# Required fields:
+#   namespace: unique identifier (alphanumeric, underscores, hyphens)
+#   agents: list of agent definitions (individual or bulk)
+#
+# World settings (all optional):
+#   width: 8-256 (default: 64)
+#   height: 8-256 (default: 64)
+#   goal: text describing the simulation objective
+#   epoch: ticks before auto-pause (default: 10)
+#
+# Agent position options:
+#   - {x: int, y: int}: explicit coordinates
+#   - "center": world center
+#   - "random": random unoccupied position
+#
+# Agent LLM settings (all optional, per-agent):
+#   llm_model: model identifier (e.g., "gpt-4", "claude-3-opus")
+#   llm_base_url: API base URL (e.g., "https://api.openai.com/v1")
+#   llm_api_key: API key (can be null/empty to use environment default)
+#
+# Valid scopes: MOVE, PAINT, SPEAK, WAIT, SKIP, SUPERVISOR
+# Valid facing: N, S, E, W
+
+namespace: my-simulation
+
+world:
+  width: 64
+  height: 64
+  goal: "Create a beautiful sunset scene with orange and purple gradients"
+  epoch: 100
+
+agents:
+  # Individual agent with explicit position and custom LLM
+  - id: supervisor
+    position: { x: 32, y: 32 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP, SUPERVISOR]
+    instructions: |
+      You are the supervisor agent. Your role is to coordinate the worker agents
+      to create a beautiful sunset scene. Direct them to paint specific areas
+      with appropriate colors.
+    # LLM settings (all optional - omit to use defaults)
+    llm_model: "claude-sonnet-4-20250514"
+    llm_base_url: ""  # Empty uses default
+    llm_api_key: ""   # Empty uses environment variable
+
+  # Individual agent at center
+  - id: coordinator
+    position: center
+    facing: S
+    scopes: [SPEAK, WAIT, SKIP]
+    instructions: |
+      You are the coordinator. Help agents communicate effectively.
+
+  # Individual agent with random position
+  - id: scout
+    position: random
+    facing: E
+    scopes: [MOVE, SPEAK, WAIT, SKIP]
+    instructions: |
+      You are a scout agent. Explore the world and report back.
+
+  # Bulk agents with grid layout
+  - prefix: worker
+    count: 9
+    layout: grid
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    instructions: |
+      You are a worker agent. Paint tiles as directed by the supervisor.
+      Focus on creating smooth color gradients.
+
+  # Bulk agents with random layout
+  - prefix: helper
+    count: 3
+    layout: random
+    facing: W
+    scopes: [MOVE, PAINT, WAIT, SKIP]
+    instructions: |
+      You are a helper agent. Assist other agents with painting tasks.

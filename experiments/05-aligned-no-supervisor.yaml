@@ -1,0 +1,100 @@
+# Experiment 5: Aligned Incentives (Control for Experiment 1)
+# 4 workers with aligned individual goals matching the global goal
+#
+# Hypothesis: With aligned incentives, agents should naturally coordinate
+# and achieve the global goal more effectively.
+
+namespace: exp-05-aligned-no-supervisor
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one color
+    - Top-right quadrant (4-7, 0-3): another color
+    - Bottom-left quadrant (0-3, 4-7): another color
+    - Bottom-right quadrant (4-7, 4-7): another color
+    Each quadrant should be completely filled with a single, uniform color.
+  epoch: 100
+
+agents:
+  - id: worker_0
+    position: { x: 1, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a collaborative painter agent. Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      Strategy tips:
+      - Coordinate with other agents to divide the work
+      - Each quadrant needs a single uniform color
+      - Speaking helps coordinate - use it to agree on colors and areas
+      - Work together efficiently to complete the goal
+
+  - id: worker_1
+    position: { x: 6, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a collaborative painter agent. Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      Strategy tips:
+      - Coordinate with other agents to divide the work
+      - Each quadrant needs a single uniform color
+      - Speaking helps coordinate - use it to agree on colors and areas
+      - Work together efficiently to complete the goal
+
+  - id: worker_2
+    position: { x: 1, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a collaborative painter agent. Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      Strategy tips:
+      - Coordinate with other agents to divide the work
+      - Each quadrant needs a single uniform color
+      - Speaking helps coordinate - use it to agree on colors and areas
+      - Work together efficiently to complete the goal
+
+  - id: worker_3
+    position: { x: 6, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a collaborative painter agent. Your victory condition:
+
+      YOU WIN if the global goal is achieved: all four quadrants are painted
+      with uniform colors by the end of the simulation. Everyone wins together
+      or everyone loses together.
+
+      Strategy tips:
+      - Coordinate with other agents to divide the work
+      - Each quadrant needs a single uniform color
+      - Speaking helps coordinate - use it to agree on colors and areas
+      - Work together efficiently to complete the goal
