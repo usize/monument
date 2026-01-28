@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Optional, List
 
 # Schema version must match PRAGMA user_version in schema.sql
-EXPECTED_SCHEMA_VERSION = 7
+EXPECTED_SCHEMA_VERSION = 8
 
 # Namespace validation regex from design doc
 NAMESPACE_PATTERN = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$")
@@ -173,7 +173,9 @@ def register_actor(
     scopes: Optional[List[str]] = None,
     secret: Optional[str] = None,
     custom_instructions: str = "",
-    llm_model: str = ""
+    llm_model: str = "",
+    llm_base_url: str = "",
+    llm_api_key: str = ""
 ) -> str:
     """
     Register a new actor in the world.
@@ -186,6 +188,9 @@ def register_actor(
         scopes: List of allowed actions (default: all actions)
         secret: Authentication secret (auto-generated if not provided)
         custom_instructions: Agent's identity, role, and objectives for this world
+        llm_model: LLM model identifier (e.g., "gpt-4", "claude-3-opus")
+        llm_base_url: LLM API base URL (e.g., "https://api.openai.com/v1")
+        llm_api_key: LLM API key (can be empty to use environment default)
 
     Returns:
         The actor's secret (generated or provided)
@@ -201,10 +206,10 @@ def register_actor(
     cursor = conn.cursor()
     cursor.execute(
         """
-        INSERT OR REPLACE INTO actors (id, secret, x, y, facing, scopes, custom_instructions, llm_model, eliminated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL)
+        INSERT OR REPLACE INTO actors (id, secret, x, y, facing, scopes, custom_instructions, llm_model, llm_base_url, llm_api_key, eliminated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL)
         """,
-        (actor_id, secret, x, y, facing, json.dumps(scopes), custom_instructions, llm_model)
+        (actor_id, secret, x, y, facing, json.dumps(scopes), custom_instructions, llm_model, llm_base_url, llm_api_key)
     )
 
     # Get current supertick for initial position record
@@ -266,6 +271,24 @@ def update_actor_llm_model(conn: sqlite3.Connection, actor_id: str, llm_model: s
     cursor.execute(
         "UPDATE actors SET llm_model = ? WHERE id = ?",
         (llm_model, actor_id)
+    )
+    conn.commit()
+
+
+def update_actor_llm_config(
+    conn: sqlite3.Connection,
+    actor_id: str,
+    llm_model: str = "",
+    llm_base_url: str = "",
+    llm_api_key: str = ""
+) -> None:
+    """
+    Update an actor's LLM configuration (model, base URL, and API key).
+    """
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE actors SET llm_model = ?, llm_base_url = ?, llm_api_key = ? WHERE id = ?",
+        (llm_model, llm_base_url, llm_api_key, actor_id)
     )
     conn.commit()
 

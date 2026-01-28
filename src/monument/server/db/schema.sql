@@ -1,8 +1,8 @@
 -- Monument DB schema (per-namespace)
--- Schema version: 7
+-- Schema version: 8
 -- No ORM, no migrations; fail-fast on version mismatch
 
-PRAGMA user_version = 7;
+PRAGMA user_version = 8;
 
 -- Metadata table: stores simulation state
 CREATE TABLE IF NOT EXISTS meta (
@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS actors (
     facing TEXT NOT NULL, -- N, S, E, W
     scopes TEXT NOT NULL DEFAULT '["MOVE","PAINT","SPEAK","WAIT","SKIP"]', -- JSON array of allowed actions
     custom_instructions TEXT NOT NULL DEFAULT '', -- Agent identity, role, and specific objectives
-    llm_model TEXT NOT NULL DEFAULT '', -- Preferred LLM model for this agent (optional override)
+    llm_model TEXT NOT NULL DEFAULT '', -- LLM model identifier (e.g., "gpt-4", "claude-3-opus")
+    llm_base_url TEXT NOT NULL DEFAULT '', -- LLM API base URL (e.g., "https://api.openai.com/v1")
+    llm_api_key TEXT NOT NULL DEFAULT '', -- LLM API key (can be empty to use environment default)
     eliminated_at INTEGER -- Unix timestamp or NULL (for future use)
 ) WITHOUT ROWID;
 
