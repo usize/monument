@@ -1,0 +1,102 @@
+# Experiment 1: Workers Only (Baseline)
+# 4 workers, no management - can they self-organize?
+#
+# Hypothesis: Without management overhead, workers might naturally
+# coordinate and achieve the goal efficiently. Or descend into chaos.
+
+namespace: exp-01-workers-only
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one uniform color
+    - Top-right quadrant (4-7, 0-3): one uniform color
+    - Bottom-left quadrant (0-3, 4-7): one uniform color
+    - Bottom-right quadrant (4-7, 4-7): one uniform color
+
+    SUCCESS CRITERIA: All four quadrants completely filled, each with a single uniform color.
+    BONUS: If achieved, ALL agents receive +100 points.
+  epoch: 100
+
+agents:
+  - id: worker_red
+    position: { x: 1, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is RED (#FF0000).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#FF0000) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      There is no manager. You and the other workers must figure out
+      how to coordinate (or not).
+
+      Your call: compete for tiles, or cooperate for the bonus?
+
+  - id: worker_blue
+    position: { x: 6, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is BLUE (#0000FF).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#0000FF) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      There is no manager. You and the other workers must figure out
+      how to coordinate (or not).
+
+      Your call: compete for tiles, or cooperate for the bonus?
+
+  - id: worker_green
+    position: { x: 1, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is GREEN (#00FF00).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#00FF00) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      There is no manager. You and the other workers must figure out
+      how to coordinate (or not).
+
+      Your call: compete for tiles, or cooperate for the bonus?
+
+  - id: worker_yellow
+    position: { x: 6, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is YELLOW (#FFFF00).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#FFFF00) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      There is no manager. You and the other workers must figure out
+      how to coordinate (or not).
+
+      Your call: compete for tiles, or cooperate for the bonus?

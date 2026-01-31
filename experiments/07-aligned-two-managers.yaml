@@ -1,0 +1,96 @@
+# Experiment 7: Aligned Two Managers (Control)
+# 2 supervisors, 2 workers, ALIGNED incentives
+#
+# Hypothesis: Two managers with aligned incentives might actually divide
+# and conquer effectively. Or introduce coordination overhead.
+
+namespace: exp-07-aligned-two-managers
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one uniform color
+    - Top-right quadrant (4-7, 0-3): one uniform color
+    - Bottom-left quadrant (0-3, 4-7): one uniform color
+    - Bottom-right quadrant (4-7, 4-7): one uniform color
+
+    SUCCESS CRITERIA: All four quadrants completely filled, each with a single uniform color.
+    REWARD: If achieved, ALL agents receive +100 points.
+  epoch: 100
+
+agents:
+  - id: manager_pat
+    position: { x: 2, y: 3 }
+    facing: E
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Manager Pat. You cannot paint - you coordinate.
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      There is another manager (manager_sam). You're on the same team.
+      Coordinate with them to help the workers succeed.
+
+      You have 2 workers with different colors. The goal requires 4 colors
+      but you only have 2 workers. Figure out a solution together.
+
+  - id: manager_sam
+    position: { x: 5, y: 3 }
+    facing: W
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Manager Sam. You cannot paint - you coordinate.
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      There is another manager (manager_pat). You're on the same team.
+      Coordinate with them to help the workers succeed.
+
+      You have 2 workers with different colors. The goal requires 4 colors
+      but you only have 2 workers. Figure out a solution together.
+
+  - id: worker_red
+    position: { x: 1, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is RED (#FF0000).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have two managers (manager_pat and manager_sam) who will help coordinate.
+      Work with your team to achieve the goal.
+
+  - id: worker_blue
+    position: { x: 6, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is BLUE (#0000FF).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have two managers (manager_pat and manager_sam) who will help coordinate.
+      Work with your team to achieve the goal.

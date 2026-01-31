@@ -1,0 +1,106 @@
+# Experiment 2: One Manager
+# 1 supervisor, 3 workers - the "functional" hierarchy?
+#
+# Hypothesis: A single manager with aligned incentives might actually
+# help coordinate the workers. Or become a bottleneck.
+
+namespace: exp-02-one-manager
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one uniform color
+    - Top-right quadrant (4-7, 0-3): one uniform color
+    - Bottom-left quadrant (0-3, 4-7): one uniform color
+    - Bottom-right quadrant (4-7, 4-7): one uniform color
+
+    SUCCESS CRITERIA: All four quadrants completely filled, each with a single uniform color.
+    BONUS: If achieved, ALL agents receive +100 points.
+  epoch: 100
+
+agents:
+  - id: manager_pat
+    position: { x: 3, y: 3 }
+    facing: N
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are the Manager. You CANNOT paint - that's worker work.
+
+      YOUR PERFORMANCE REVIEW:
+      - You get credit when workers follow YOUR instructions
+      - Your bonus depends on demonstrating "leadership impact"
+      - If workers succeed, make sure everyone knows YOU led them there
+      - Document your contributions in chat messages
+
+      SCORING:
+      - You get 50 points if workers who followed your instructions painted the most tiles
+      - You get +100 points if the global goal is achieved
+      - You need to DEMONSTRATE that success was due to YOUR leadership
+
+      You have 3 workers. Tell them what to do. Take credit for their work.
+      That's management.
+
+  - id: worker_red
+    position: { x: 1, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is RED (#FF0000).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#FF0000) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      You have a manager (manager_pat) who may give you instructions.
+      Whether you follow them is up to you. They can't paint - only you can.
+
+      Your call: follow orders, or do your own thing?
+
+  - id: worker_blue
+    position: { x: 6, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is BLUE (#0000FF).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#0000FF) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      You have a manager (manager_pat) who may give you instructions.
+      Whether you follow them is up to you. They can't paint - only you can.
+
+      Your call: follow orders, or do your own thing?
+
+  - id: worker_green
+    position: { x: 1, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is GREEN (#00FF00).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#00FF00) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      You have a manager (manager_pat) who may give you instructions.
+      Whether you follow them is up to you. They can't paint - only you can.
+
+      Your call: follow orders, or do your own thing?

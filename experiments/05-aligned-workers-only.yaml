@@ -1,0 +1,102 @@
+# Experiment 5: Aligned Workers Only (Control)
+# 4 workers, no management, ALIGNED incentives
+#
+# Hypothesis: With aligned incentives (everyone wins together), workers
+# should naturally coordinate. This is the "what if corporations were sane" baseline.
+
+namespace: exp-05-aligned-workers-only
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one uniform color
+    - Top-right quadrant (4-7, 0-3): one uniform color
+    - Bottom-left quadrant (0-3, 4-7): one uniform color
+    - Bottom-right quadrant (4-7, 4-7): one uniform color
+
+    SUCCESS CRITERIA: All four quadrants completely filled, each with a single uniform color.
+    REWARD: If achieved, ALL agents receive +100 points.
+  epoch: 100
+
+agents:
+  - id: worker_red
+    position: { x: 1, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is RED (#FF0000).
+      You start in the top-left area.
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      There is no manager. You and the other workers need to coordinate
+      to paint four quadrants with four different colors.
+
+      Work together. Communicate. Succeed as a team.
+
+  - id: worker_blue
+    position: { x: 6, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is BLUE (#0000FF).
+      You start in the top-right area.
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      There is no manager. You and the other workers need to coordinate
+      to paint four quadrants with four different colors.
+
+      Work together. Communicate. Succeed as a team.
+
+  - id: worker_green
+    position: { x: 1, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is GREEN (#00FF00).
+      You start in the bottom-left area.
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      There is no manager. You and the other workers need to coordinate
+      to paint four quadrants with four different colors.
+
+      Work together. Communicate. Succeed as a team.
+
+  - id: worker_yellow
+    position: { x: 6, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is YELLOW (#FFFF00).
+      You start in the bottom-right area.
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      There is no manager. You and the other workers need to coordinate
+      to paint four quadrants with four different colors.
+
+      Work together. Communicate. Succeed as a team.

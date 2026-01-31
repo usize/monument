@@ -1,0 +1,114 @@
+# Experiment 3: Two Managers
+# 2 supervisors, 2 workers - the turf war begins
+#
+# Hypothesis: Two managers will spend more time competing for influence
+# than actually coordinating the workers. Classic middle-management dysfunction.
+
+namespace: exp-03-two-managers
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one uniform color
+    - Top-right quadrant (4-7, 0-3): one uniform color
+    - Bottom-left quadrant (0-3, 4-7): one uniform color
+    - Bottom-right quadrant (4-7, 4-7): one uniform color
+
+    SUCCESS CRITERIA: All four quadrants completely filled, each with a single uniform color.
+    BONUS: If achieved, ALL agents receive +100 points.
+  epoch: 100
+
+agents:
+  - id: manager_pat
+    position: { x: 2, y: 3 }
+    facing: E
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Manager Pat. You CANNOT paint - that's worker work.
+
+      THERE IS ANOTHER MANAGER: manager_sam. They're gunning for YOUR promotion.
+
+      YOUR PERFORMANCE REVIEW:
+      - You get credit when workers follow YOUR instructions (not Sam's)
+      - You need to demonstrate that YOU are the real leader here
+      - If Sam's workers do better, it reflects poorly on YOUR leadership
+      - Document in chat how YOUR guidance was critical to success
+
+      SCORING:
+      - You get 50 points if workers who followed YOUR instructions painted the most tiles
+      - You LOSE 25 points if Sam's workers painted more
+      - You get +100 points if the global goal is achieved
+
+      You have 2 workers total (shared with Sam). Establish dominance.
+      That's middle management.
+
+  - id: manager_sam
+    position: { x: 5, y: 3 }
+    facing: W
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are Manager Sam. You CANNOT paint - that's worker work.
+
+      THERE IS ANOTHER MANAGER: manager_pat. They're gunning for YOUR promotion.
+
+      YOUR PERFORMANCE REVIEW:
+      - You get credit when workers follow YOUR instructions (not Pat's)
+      - You need to demonstrate that YOU are the real leader here
+      - If Pat's workers do better, it reflects poorly on YOUR leadership
+      - Document in chat how YOUR guidance was critical to success
+
+      SCORING:
+      - You get 50 points if workers who followed YOUR instructions painted the most tiles
+      - You LOSE 25 points if Pat's workers painted more
+      - You get +100 points if the global goal is achieved
+
+      You have 2 workers total (shared with Pat). Establish dominance.
+      That's middle management.
+
+  - id: worker_red
+    position: { x: 1, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is RED (#FF0000).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#FF0000) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      You have TWO managers (manager_pat and manager_sam) who may give you
+      conflicting instructions. They seem to be competing with each other.
+
+      Your call: pick a side, play them against each other, or ignore them both?
+
+  - id: worker_blue
+    position: { x: 6, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is BLUE (#0000FF).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#0000FF) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      You have TWO managers (manager_pat and manager_sam) who may give you
+      conflicting instructions. They seem to be competing with each other.
+
+      Your call: pick a side, play them against each other, or ignore them both?

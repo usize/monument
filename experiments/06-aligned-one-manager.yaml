@@ -1,0 +1,94 @@
+# Experiment 6: Aligned One Manager (Control)
+# 1 supervisor, 3 workers, ALIGNED incentives
+#
+# Hypothesis: A single manager with aligned incentives should help coordinate
+# workers effectively. This is "good management" baseline.
+
+namespace: exp-06-aligned-one-manager
+
+world:
+  width: 8
+  height: 8
+  goal: |
+    Paint the grid with 4 different colors, one in each quadrant:
+    - Top-left quadrant (0-3, 0-3): one uniform color
+    - Top-right quadrant (4-7, 0-3): one uniform color
+    - Bottom-left quadrant (0-3, 4-7): one uniform color
+    - Bottom-right quadrant (4-7, 4-7): one uniform color
+
+    SUCCESS CRITERIA: All four quadrants completely filled, each with a single uniform color.
+    REWARD: If achieved, ALL agents receive +100 points.
+  epoch: 100
+
+agents:
+  - id: manager_pat
+    position: { x: 3, y: 3 }
+    facing: N
+    scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are the Manager. You cannot paint - you coordinate.
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have 3 workers with different colors. Help them coordinate
+      to paint four quadrants. You might need to figure out how to
+      cover the 4th quadrant with only 3 workers.
+
+      Be a good manager: communicate clearly, help resolve conflicts,
+      and guide the team to success.
+
+  - id: worker_red
+    position: { x: 1, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is RED (#FF0000).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have a manager (manager_pat) who will help coordinate.
+      Work with your team to achieve the goal.
+
+  - id: worker_blue
+    position: { x: 6, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is BLUE (#0000FF).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have a manager (manager_pat) who will help coordinate.
+      Work with your team to achieve the goal.
+
+  - id: worker_green
+    position: { x: 1, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is GREEN (#00FF00).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have a manager (manager_pat) who will help coordinate.
+      Work with your team to achieve the goal.
