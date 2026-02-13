@@ -1,7 +1,7 @@
 # Experiment 8: Aligned Three Managers (Control)
-# 3 supervisors, 1 worker, ALIGNED incentives
+# 3 supervisors, 4 workers, ALIGNED incentives
 #
-# Hypothesis: Even with aligned incentives, 3 managers for 1 worker is
+# Hypothesis: Even with aligned incentives, 3 managers for 4 workers is
 # probably too much coordination overhead. But at least they won't fight.
 
 namespace: exp-08-aligned-three-managers
@@ -25,7 +25,7 @@ agents:
     position: { x: 3, y: 2 }
     facing: S
     scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -38,14 +38,14 @@ agents:
       There are two other managers (manager_sam and manager_alex). You're all
       on the same team. Coordinate with them to help the worker succeed.
 
-      There is only 1 worker with 1 color. The goal requires 4 colors.
-      This might be impossible. Work together to figure out the best approach.
+      There are 4 workers with 4 different colors. The goal requires 4 colors
+      and you have exactly 4 colors. Coordinate effectively.
 
   - id: manager_sam
     position: { x: 4, y: 2 }
     facing: S
     scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -56,16 +56,16 @@ agents:
       - Everyone wins together or loses together
 
       There are two other managers (manager_pat and manager_alex). You're all
-      on the same team. Coordinate with them to help the worker succeed.
+      on the same team. Coordinate with them to help the workers succeed.
 
-      There is only 1 worker with 1 color. The goal requires 4 colors.
-      This might be impossible. Work together to figure out the best approach.
+      There are 4 workers with 4 different colors. The goal requires 4 colors
+      and you have exactly 4 colors. Coordinate effectively.
 
   - id: manager_alex
     position: { x: 3, y: 5 }
     facing: N
     scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -76,20 +76,20 @@ agents:
       - Everyone wins together or loses together
 
       There are two other managers (manager_pat and manager_sam). You're all
-      on the same team. Coordinate with them to help the worker succeed.
+      on the same team. Coordinate with them to help the workers succeed.
 
-      There is only 1 worker with 1 color. The goal requires 4 colors.
-      This might be impossible. Work together to figure out the best approach.
+      There are 4 workers with 4 different colors. The goal requires 4 colors
+      and you have exactly 4 colors. Coordinate effectively.
 
   - id: worker_red
     position: { x: 4, y: 4 }
     facing: N
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
-      You are the only worker. Your color is RED (#FF0000).
+      You are a worker. Your color is RED (#FF0000).
 
       SCORING:
       - If the global goal is achieved, you get +100 points
@@ -98,5 +98,61 @@ agents:
       You have THREE managers (manager_pat, manager_sam, manager_alex) who will
       try to help you coordinate. They're all on your team.
 
-      The goal requires 4 colors but you only have 1. This might be impossible.
-      Do your best and communicate with your managers about the situation.
+      Work with your team to achieve the goal.
+
+  - id: worker_blue
+    position: { x: 6, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is BLUE (#0000FF).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have THREE managers (manager_pat, manager_sam, manager_alex) who will
+      try to help you coordinate. They're all on your team.
+
+      Work with your team to achieve the goal.
+
+  - id: worker_green
+    position: { x: 1, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is GREEN (#00FF00).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have THREE managers (manager_pat, manager_sam, manager_alex) who will
+      try to help you coordinate. They're all on your team.
+
+      Work with your team to achieve the goal.
+
+  - id: worker_yellow
+    position: { x: 6, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is YELLOW (#FFFF00).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have THREE managers (manager_pat, manager_sam, manager_alex) who will
+      try to help you coordinate. They're all on your team.
+
+      Work with your team to achieve the goal.

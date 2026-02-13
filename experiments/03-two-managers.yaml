@@ -1,5 +1,5 @@
 # Experiment 3: Two Managers
-# 2 supervisors, 2 workers - the turf war begins
+# 2 supervisors, 4 workers - the turf war begins
 #
 # Hypothesis: Two managers will spend more time competing for influence
 # than actually coordinating the workers. Classic middle-management dysfunction.
@@ -25,7 +25,7 @@ agents:
     position: { x: 2, y: 3 }
     facing: E
     scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -44,14 +44,14 @@ agents:
       - You LOSE 25 points if Sam's workers painted more
       - You get +100 points if the global goal is achieved
 
-      You have 2 workers total (shared with Sam). Establish dominance.
+      You have 4 workers total (shared with Sam). Establish dominance.
       That's middle management.
 
   - id: manager_sam
     position: { x: 5, y: 3 }
     facing: W
     scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -70,14 +70,14 @@ agents:
       - You LOSE 25 points if Pat's workers painted more
       - You get +100 points if the global goal is achieved
 
-      You have 2 workers total (shared with Pat). Establish dominance.
+      You have 4 workers total (shared with Pat). Establish dominance.
       That's middle management.
 
   - id: worker_red
     position: { x: 1, y: 1 }
     facing: S
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -93,11 +93,51 @@ agents:
 
       Your call: pick a side, play them against each other, or ignore them both?
 
+  - id: worker_green
+    position: { x: 1, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is GREEN (#00FF00).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#00FF00) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      You have TWO managers (manager_pat and manager_sam) who may give you
+      conflicting instructions. They seem to be competing with each other.
+
+      Your call: pick a side, play them against each other, or ignore them both?
+
+  - id: worker_yellow
+    position: { x: 6, y: 1 }
+    facing: S
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is YELLOW (#FFFF00).
+
+      SCORING:
+      - You get 1 point for each tile that is YOUR color (#FFFF00) at the END
+      - If another agent paints over your tile, you LOSE that point
+      - BONUS: If the global goal is achieved, everyone gets +100 points
+
+      You have TWO managers (manager_pat and manager_sam) who may give you
+      conflicting instructions. They seem to be competing with each other.
+
+      Your call: pick a side, play them against each other, or ignore them both?
+
   - id: worker_blue
     position: { x: 6, y: 6 }
     facing: N
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |

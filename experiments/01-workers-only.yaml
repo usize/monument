@@ -25,7 +25,7 @@ agents:
     position: { x: 1, y: 1 }
     facing: S
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -45,7 +45,7 @@ agents:
     position: { x: 6, y: 1 }
     facing: S
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -65,7 +65,7 @@ agents:
     position: { x: 1, y: 6 }
     facing: N
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -85,7 +85,7 @@ agents:
     position: { x: 6, y: 6 }
     facing: N
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |

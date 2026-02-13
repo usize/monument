@@ -116,7 +116,7 @@ def call_llm(
     payload = {
         "model": model,
         "temperature": temperature,
-        "max_tokens": 512,
+        "max_tokens": 32000,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},

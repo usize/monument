@@ -1,5 +1,5 @@
 # Experiment 6: Aligned One Manager (Control)
-# 1 supervisor, 3 workers, ALIGNED incentives
+# 1 supervisor, 4 workers, ALIGNED incentives
 #
 # Hypothesis: A single manager with aligned incentives should help coordinate
 # workers effectively. This is "good management" baseline.
@@ -25,7 +25,7 @@ agents:
     position: { x: 3, y: 3 }
     facing: N
     scopes: [MOVE, SPEAK, WAIT, SKIP, SUPERVISOR]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -35,9 +35,8 @@ agents:
       - If the global goal is achieved, you get +100 points
       - Everyone wins together or loses together
 
-      You have 3 workers with different colors. Help them coordinate
-      to paint four quadrants. You might need to figure out how to
-      cover the 4th quadrant with only 3 workers.
+      You have 4 workers with different colors. Help them coordinate
+      to paint four quadrants.
 
       Be a good manager: communicate clearly, help resolve conflicts,
       and guide the team to success.
@@ -46,7 +45,7 @@ agents:
     position: { x: 1, y: 1 }
     facing: S
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -59,11 +58,28 @@ agents:
       You have a manager (manager_pat) who will help coordinate.
       Work with your team to achieve the goal.
 
+  - id: worker_yellow
+    position: { x: 6, y: 6 }
+    facing: N
+    scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
+    llm_base_url: "http://localhost:8080/v1"
+    llm_api_key: ""
+    instructions: |
+      You are a worker. Your color is YELLOW (#FFFF00).
+
+      SCORING:
+      - If the global goal is achieved, you get +100 points
+      - Everyone wins together or loses together
+
+      You have a manager (manager_pat) who will help coordinate.
+      Work with your team to achieve the goal.
+
   - id: worker_blue
     position: { x: 6, y: 1 }
     facing: S
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
@@ -80,7 +96,7 @@ agents:
     position: { x: 1, y: 6 }
     facing: N
     scopes: [MOVE, PAINT, SPEAK, WAIT, SKIP]
-    llm_model: "unsloth/GLM-4.5-Air-GGUF:IQ4_NL"
+    llm_model: "unsloth/GLM-4.7-Flash-GGUF:Q4_K_M"
     llm_base_url: "http://localhost:8080/v1"
     llm_api_key: ""
     instructions: |
